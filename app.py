@@ -200,7 +200,7 @@ with tab2:
     if not df_table.empty:
         # 列名を整えて表示
         output_l = df_table[['UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']].sort_values('TotalApps_L', ascending=False)
-        output_l.columns = ['ユニット構成', '合計プレイ数', '攻撃評価', '守備評価']
+        output_l.columns = ['ラインナップ構成', '合計プレイ数', '攻撃評価', '守備評価']
         
         st.dataframe(
             output_l.style.format({'攻撃評価': '{:.1f}', '守備評価': '{:.1f}'}),
