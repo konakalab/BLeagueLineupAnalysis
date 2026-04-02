@@ -184,14 +184,36 @@ with tab1:
     st.plotly_chart(fig_p, use_container_width=True)
 
     # --- テーブル表示 ---
-    if not is_league_mode:
+    st.write(f"### {sel_team_name} 選手データ一覧")
+    
+    if is_league_mode:
+        # リーグ全体モード：全選手を表示（Streamlitのdataframeは検索・ソートが可能）
+        output_p = df_all_p[['TeamID', 'PlayerNo', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']].copy()
+        # TeamIDからチーム名を紐付け
+        team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
+        output_p['チーム'] = output_p['TeamID'].map(team_dict)
+        
+        # カラム整理
+        output_p = output_p[['チーム', 'PlayerNo', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']]
+        output_p = output_p.sort_values('HensatiOFF', ascending=False) # デフォルトは攻撃評価順
+        output_p.columns = ['チーム', '背番号', '選手名', '合計プレイ数', '攻撃評価', '守備評価']
+        
+        st.caption("※ リーグ全体の全選手を表示しています。右上の検索窓や列名クリックでソート・絞り込みが可能です。")
+    else:
+        # 特定チームモード：そのチームの選手のみ
         df_tp = df_all_p[df_all_p['is_selected']].copy()
-        if not df_tp.empty:
-            st.write(f"### {sel_team_name} 選手一覧")
-            df_tp['背番号'] = df_tp['PlayerNo'].astype(int)
-            output_p = df_tp[['背番号', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']].sort_values('TotalApps', ascending=False)
-            output_p.columns = ['背番号', '選手名', '合計プレイ数', '攻撃評価', '守備評価']
-            st.dataframe(output_p.style.format({'攻撃評価': '{:.1f}', '守備評価': '{:.1f}'}), use_container_width=True, hide_index=True)
+        output_p = df_tp[['PlayerNo', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']].sort_values('TotalApps', ascending=False)
+        output_p.columns = ['背番号', '選手名', '合計プレイ数', '攻撃評価', '守備評価']
+
+    # 共通のデータフレーム表示処理
+    st.dataframe(
+        output_p.style.format({'攻撃評価': '{:.1f}', '守備評価': '{:.1f}'}), 
+        use_container_width=True, 
+        hide_index=True
+    )
+    
+
+
 with tab2:
     st.subheader("ラインナップ別 評価値分布")
     
