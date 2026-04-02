@@ -125,14 +125,14 @@ with tab1:
     is_league_mode = (target_team_id is None)
 
     if is_league_mode:
-        st.subheader(f"リーグ全体 選手評価分布 ({sel_league}) 分析対象期間：{analysis_period}")
+        st.subheader(f"リーグ全体 選手評価分布 ({sel_league})")
         df_all_p['DisplayGroup'] = sel_league
         df_all_p['is_selected'] = True
         df_all_p['Label'] = "" # リーグ全体ではラベル非表示（密集回避）
         color_map = {sel_league: '#636EFA'}
         opacity_val = 0.3
     else:
-        st.subheader(f"選手別 評価値分布 ({sel_team_name}) 分析対象期間：{analysis_period}")
+        st.subheader(f"選手別 評価値分布 ({sel_team_name})")
         df_all_p['is_selected'] = (df_all_p['TeamID'] == target_team_id)
         df_all_p['DisplayGroup'] = df_all_p['is_selected'].map({True: sel_team_name, False: 'その他'})
         # 自チームの背番号のみ表示
@@ -164,11 +164,15 @@ with tab1:
     # 既存の凡例・スパイクライン等のレイアウト設定を適用
     fig_p.update_layout(
         title={
-            'text': f"<b>{sel_team_name}</b> 選手評価分布<br><span style='font-size:12px; color:gray;'>点サイズ: 合計プレイ数 / ラベル: 背番号</span>",
+            'text': (
+                f"<b>{sel_team_name}</b> 選手評価分布<br>"
+                f"<span style='font-size:12px; color:gray;'>期間: {analysis_period}</span><br>"
+                f"<span style='font-size:12px; color:gray;'>点サイズ: 合計プレイ数 / ラベル: 背番号</span>"
+            ),
             'x': 0.5,
-            'y': 0.95,          # 【追加】タイトルの垂直位置（0〜1の範囲。0.95は上端に近い位置）
+            'y': 0.98,          # 3行になるので少し上に寄せる
             'xanchor': 'center',
-            'yanchor': 'top'    # 【追加】タイトルの上端を基準にする
+            'yanchor': 'top'
         },
         # --- マージンの調整 ---
         margin=dict(l=20, r=20, t=100, b=100), # 【修正】t（上部）を 20 から 100 に増やしました
