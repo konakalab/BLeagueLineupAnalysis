@@ -168,8 +168,7 @@ with tab2:
             name=cfg["name"],
             text=sub['UnitNames'],
             marker=dict(
-                # サイズ係数を 0.7 に調整
-                size=np.sqrt(sub['TotalApps_L'] + 1) * 0.7, 
+                size=np.sqrt(sub['TotalApps_L'] + 1) * 1.2, 
                 color=cfg["color"],
                 opacity=cfg["opacity"],
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
