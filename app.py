@@ -161,16 +161,12 @@ with tab2:
         sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]]
         if sub.empty: continue
         
-        # --- ツールチップ表示の判定ロジックを修正 ---
-        # 1. 基本的に「その他」は常に skip
-        # 2. 注目選手(target_p_id)が選択されている場合、その選手を含む(★)グループ以外も skip
+        # 判定ロジック（名称を「★注目選手含む」に合わせました）
         if cfg["name"] == "その他":
             hover_setting = "skip"
         elif target_p_id is not None:
-            # 注目選手選択中
-            hover_setting = "all" if cfg["name"] == "注目選手" else "skip"
+            hover_setting = "all" if cfg["name"] == "★注目選手含む" else "skip"
         else:
-            # 注目選手未選択：自チーム(sel_team_name)のデータはすべて表示
             hover_setting = "all"
 
         fig_l.add_trace(go.Scattergl(
@@ -187,6 +183,13 @@ with tab2:
                 opacity=cfg["opacity"],
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
             ),
+            # 【追加】ツールチップの外観設定（テンプレートの内容は変えずに見栄えを調整）
+            hoverlabel=dict(
+                bgcolor="rgba(255, 255, 255, 0.9)", # 背景を白（少し透過）にして文字を読みやすく
+                bordercolor="gray",                # 枠線をつけてマーカーとの境界を明示
+                font_size=12,
+                namelength=0                       # 横のラベル（トレース名）を消してコンパクトに
+            ),
             hovertemplate=(
                 "<b>%{text}</b><br>" +
                 "合計プレイ数: %{customdata}回，" + 
@@ -195,14 +198,21 @@ with tab2:
             ) if hover_setting == "all" else None
         ))
 
+    # --- グラフ全体のレイアウト設定 ---
     fig_l.update_layout(
-        # hovermode を 'closest' にすることで、重なりの中でも最も近い1点に集中させます
-        hovermode='closest',
+        # 【重要】最も近い1点だけに反応させることで、重なりによる混雑を回避
+        hovermode='closest', 
+        # ホバーラベルがグラフの端で切れないように調整
+        hoverdistance=100,
         xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='lightgray'),
         yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1),
         height=700, margin=dict(l=20, r=20, t=20, b=20),
         plot_bgcolor='white'
     )
+    
+    # ツールチップの表示位置を最適化する設定
+    fig_l.update_traces(hoveron='points')
+    
     fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
     
