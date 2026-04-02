@@ -123,22 +123,19 @@ with tab1:
     st.dataframe(disp_df.sort_values('合計プレイ数', ascending=False), use_container_width=True, hide_index=True)
 
 # --- タブ2: ラインナップ分析 ---
-with tab1_lineup, tab2_lineup = st.tabs(["グラフ分析", "データ一覧"]) # タブ内にさらにタブを作ると見やすいですが、今回は一つの流れで作ります
-
 with tab2:
     st.subheader("ラインナップ別 偏差値分布 (全体比較)")
     
     # 全ラインナップデータの準備
     df_all_l = df_lineup.copy()
     
-    # 1. サイズ計算：TotalApps (OFF+DEF) の平方根に比例させる
-    # ※ table_lineups.csv に DEFApps がない場合は OFFApps を流用するか、
-    # もしカラムがある場合は df_all_l['OFFApps'] + df_all_l['DEFApps'] としてください。
-    # ここでは安全のため OFFApps をベースに計算します。
-    df_all_l['TotalApps_L'] = df_all_l['OFFApps'] # 必要に応じて + df_all_l['DEFApps']
+    # 1. サイズ計算：TotalApps (OFFApps + DEFApps) の平方根に比例
+    # ※ table_lineups.csv に DEFApps カラムがあることを前提としています
+    # もしエラーが出る場合は df_all_l['OFFApps'] のみに書き換えてください
+    df_all_l['TotalApps_L'] = df_all_l['OFFApps'] + df_all_l['DEFApps']
     df_all_l['MarkerSize'] = np.sqrt(df_all_l['TotalApps_L'] + 1)
     
-    # チーム所属選手のリスト（サイドバーではなく、タブ内の上部に配置）
+    # チーム所属選手のリスト（強調表示用）
     team_players = df_player[df_player['TeamID'] == target_team_id].sort_values('PlayerNo')
     p_options = ["指定なし"] + [f"{r['PlayerNo']} {r['PlayerNameJ']}" for _, r in team_players.iterrows()]
     sel_p_lineup = st.selectbox("特定の選手が含まれるユニットを強調表示", p_options)
@@ -195,7 +192,7 @@ with tab2:
             "★注目選手含む": '#19D3F3',      # 注目選手（シアン）
             'その他': '#E5ECF6'            # その他（グレー）
         },
-        labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps_L': 'プレイ数'},
+        labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps_L': '合計プレイ数'},
         opacity=df_all_l['DisplayGroup'].map(lambda x: 1.0 if x != "その他" else 0.3)
     )
 
@@ -212,24 +209,21 @@ with tab2:
     # --- ラインナップテーブル ---
     st.write(f"### {sel_team_name} ラインナップ・スタッツ")
     
-    # 表示対象を自チームに絞る
     df_table = df_all_l[df_all_l['TeamID'] == target_team_id].copy()
     
     if not df_table.empty:
         df_table['ユニット構成'] = df_table.apply(get_unit_names, axis=1)
         
-        # 注目選手が選ばれている場合、その選手を含むものを上に持ってくる
+        # ソート順の設定
         if target_p_id:
             df_table['is_hit'] = df_table['DisplayGroup'] == "★注目選手含む"
             df_table = df_table.sort_values(['is_hit', 'TotalApps_L'], ascending=False)
         else:
             df_table = df_table.sort_values('TotalApps_L', ascending=False)
 
-        # 列の整理
         output_table = df_table[['ユニット構成', 'TotalApps_L', 'RatingOFF', 'HensatiOFF', 'HensatiDEF']].copy()
-        output_table.columns = ['ユニット構成', 'プレイ数', 'Rating', '攻撃偏差値', '守備偏差値']
+        output_table.columns = ['ユニット構成', '合計プレイ数', 'Rating', '攻撃偏差値', '守備偏差値']
         
-        # 数値の丸め
         output_table['Rating'] = output_table['Rating'].round(1)
         output_table['攻撃偏差値'] = output_table['攻撃偏差値'].round(1)
         output_table['守備偏差値'] = output_table['守備偏差値'].round(1)
