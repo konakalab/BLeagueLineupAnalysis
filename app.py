@@ -234,11 +234,21 @@ with tab2:
 
     # --- グラフ全体のレイアウト設定 ---
     fig_l.update_layout(
-        hovermode='closest', # 重なり回避の最重要設定
+        hovermode='closest',
         xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='lightgray'),
         yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1),
-        height=700, margin=dict(l=20, r=20, t=20, b=20),
-        plot_bgcolor='white'
+        height=700, 
+        margin=dict(l=20, r=20, t=20, b=100), # 下側の余白（b）を少し広げます
+        plot_bgcolor='white',
+
+        # --- 【追加】凡例の設定（グラフ下部・中央） ---
+        legend=dict(
+            orientation="h",   # 水平（Horizontal）に並べる
+            yanchor="top",     # 凡例の「上端」を基準点にする
+            y=-0.15,           # グラフエリアからの垂直距離（マイナスで下側）
+            xanchor="center",  # 凡例の「中心」を基準点にする
+            x=0.5              # グラフの横幅の中央（0.5）に配置
+        )
     )
     
     # エラーの原因となった行 (fig_l.update_traces(hoveron='points')) は削除しました
