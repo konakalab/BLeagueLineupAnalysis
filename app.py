@@ -163,6 +163,11 @@ with tab1:
 
     # 既存の凡例・スパイクライン等のレイアウト設定を適用
     fig_p.update_layout(
+        title={
+            'text': f"<b>{sel_team_name}</b> 選手評価分布<br><span style='font-size:12px; color:gray;'>点サイズ: 合計プレイ数 / ラベル: 背番号</span>",
+            'x': 0.5,
+            'xanchor': 'center'
+        },
         xaxis=dict(
             range=[-30, 30], title="攻撃評価", gridcolor='lightgray',
             showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"
