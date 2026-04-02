@@ -140,7 +140,7 @@ with tab2:
     # 表示グループの判定関数
     def get_group(row):
         if target_p_id and target_p_id in row['LineupSet']:
-            return "★注目選手含む"
+            return "★選択選手含む"
         return sel_team_name if row['TeamID'] == target_team_id else "その他"
 
     df_plot['DisplayGroup'] = df_plot.apply(get_group, axis=1)
@@ -152,7 +152,7 @@ with tab2:
     plot_configs = [
         {"name": "その他", "color": "#E5ECF6", "opacity": 0.2},      # 透明度を上げ（薄く）
         {"name": sel_team_name, "color": "#EF553B", "opacity": 0.5}, # 自チームを少し薄く
-        {"name": "★注目選手含む", "color": "#19D3F3", "opacity": 0.75}  # 注目選手も少しマイルドに
+        {"name": "★選択選手含む", "color": "#19D3F3", "opacity": 0.75}  # 注目選手も少しマイルドに
     ]
 
     for cfg in plot_configs:
