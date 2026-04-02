@@ -32,7 +32,7 @@ def load_all_data():
     # --- ラインナップ内の選手名を背番号順に並び替えて結合する関数 ---
     def get_sorted_unit_names(row):
         p_ids = []
-        for i in range(1, 6):
+        for i in range(1, 6
             pid = int(row[f'Lineup_{i}'])
             if pid != 0:
                 p_ids.append(pid)
@@ -187,31 +187,45 @@ with tab1:
     st.write(f"### {sel_team_name} 選手データ一覧")
     
     if is_league_mode:
-        # リーグ全体モード：全選手を表示
+        # 1. リーグ全体モード：必要な列をコピー
         output_p = df_all_p[['TeamID', 'PlayerNo', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']].copy()
         
-        # TeamIDをキーにしてチーム名をマッピング
+        # チーム名をマッピング
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
         output_p['チーム'] = output_p['TeamID'].map(team_dict)
         
-        # カラムの並び替えと初期ソート（合計プレイ数順）
-        output_p = output_p[['チーム', 'PlayerNo', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']]
-        output_p = output_p.sort_values('TotalApps', ascending=False) 
-        output_p.columns = ['チーム', '背番号', '選手名', '合計プレイ数', '攻撃評価', '守備評価']
+        # 2. 【新規】貢献量の計算： (攻撃+守備) * プレイ数
+        output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
         
-        st.caption("※ リーグ全体の全選手を「合計プレイ数」順に表示しています。")
+        # カラム順の整理（チーム名を左端、貢献量を評価値の前に配置）
+        output_p = output_p[['チーム', 'PlayerNo', 'PlayerNameJ', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']]
+        # 内部変数を表示用名に置換してからソート
+        output_p.columns = ['チーム', '背番号', '選手名', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
+        
+        # 3. 貢献量でデフォルトソート
+        output_p = output_p.sort_values('貢献量', ascending=False)
+        
+        st.caption("※ リーグ全体の全選手を「貢献量」順に表示しています。貢献量 = (攻撃評価 + 守備評価) × プレイ数")
     else:
-        # 特定チームモード：そのチームの選手のみ
+        # 1. 特定チームモード
         df_tp = df_all_p[df_all_p['is_selected']].copy()
-        # 初期ソート（合計プレイ数順）
-        output_p = df_tp[['PlayerNo', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']].sort_values('TotalApps', ascending=False)
-        output_p.columns = ['背番号', '選手名', '合計プレイ数', '攻撃評価', '守備評価']
+        
+        # 2. 【新規】貢献量の計算
+        df_tp['貢献量'] = (df_tp['HensatiOFF'] + df_tp['HensatiDEF']) * df_tp['TotalApps']
+        
+        # カラム整理とソート
+        output_p = df_tp[['PlayerNo', 'PlayerNameJ', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF']]
+        output_p.columns = ['背番号', '選手名', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
+        
+        # 3. 貢献量でデフォルトソート
+        output_p = output_p.sort_values('貢献量', ascending=False)
 
-    # 共通のデータフレーム表示（背番号を整数として表示）
+    # 4. 共通のデータフレーム表示（フォーマット調整）
     st.dataframe(
         output_p.style.format({
             '背番号': '{:d}',
             '合計プレイ数': '{:d}',
+            '貢献量': '{:,.0f}', # カンマ区切り、整数
             '攻撃評価': '{:.1f}', 
             '守備評価': '{:.1f}'
         }), 
