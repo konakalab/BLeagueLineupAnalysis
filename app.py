@@ -188,45 +188,48 @@ with tab1:
     st.write(f"### {sel_team_name} 選手データ一覧")
     
     if is_league_mode:
-        # 1. リーグ全体モード：必要な列をコピー
+        # 1. 必要な列を内部変数名のまま抽出
         output_p = df_all_p[['TeamID', 'PlayerNo', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']].copy()
         
         # チーム名をマッピング
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
         output_p['チーム'] = output_p['TeamID'].map(team_dict)
         
-        # 2. 【新規】貢献量の計算： (攻撃+守備) * プレイ数
+        # 2. 貢献量の計算
         output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
         
-        # カラム順の整理（チーム名を左端、貢献量を評価値の前に配置）
-        output_p = output_p[['チーム', 'PlayerNo', 'PlayerNameJ', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']]
-        # 内部変数を表示用名に置換してからソート
+        # 3. 列の並べ替え（この時点ではまだ元の列名を使用する）
+        output_p = output_p[['チーム', 'PlayerNo', 'PlayerNameJ', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF']]
+        
+        # 4. 最後に表示用の日本語名に一括置換
         output_p.columns = ['チーム', '背番号', '選手名', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
         
-        # 3. 貢献量でデフォルトソート
+        # 5. 貢献量でソート
         output_p = output_p.sort_values('貢献量', ascending=False)
         
         st.caption("※ リーグ全体の全選手を「貢献量」順に表示しています。貢献量 = (攻撃評価 + 守備評価) × プレイ数")
     else:
-        # 1. 特定チームモード
+        # 特定チームモード
         df_tp = df_all_p[df_all_p['is_selected']].copy()
         
-        # 2. 【新規】貢献量の計算
+        # 貢献量の計算
         df_tp['貢献量'] = (df_tp['HensatiOFF'] + df_tp['HensatiDEF']) * df_tp['TotalApps']
         
-        # カラム整理とソート
+        # 列の選択
         output_p = df_tp[['PlayerNo', 'PlayerNameJ', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF']]
+        
+        # 日本語名に置換
         output_p.columns = ['背番号', '選手名', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
         
-        # 3. 貢献量でデフォルトソート
+        # 貢献量でソート
         output_p = output_p.sort_values('貢献量', ascending=False)
 
-    # 4. 共通のデータフレーム表示（フォーマット調整）
+    # 共通のデータフレーム表示
     st.dataframe(
         output_p.style.format({
             '背番号': '{:d}',
             '合計プレイ数': '{:d}',
-            '貢献量': '{:,.0f}', # カンマ区切り、整数
+            '貢献量': '{:,.0f}', 
             '攻撃評価': '{:.1f}', 
             '守備評価': '{:.1f}'
         }), 
