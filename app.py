@@ -49,7 +49,7 @@ teams_in_league = df_team[df_team['League'] == sel_league].copy()
 
 if 'order' in teams_in_league.columns:
     # orderでソート。orderが同じ場合はTeamID順にする
-    teams_sorted = teams_in_league.sort_values(by=['Order', 'TeamID'])
+    teams_sorted = teams_in_league.sort_values(by=['Order'])
 else:
     # orderがない場合はTeamID順
     teams_sorted = teams_in_league.sort_values(by='TeamID')
