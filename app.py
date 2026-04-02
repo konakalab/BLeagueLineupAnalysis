@@ -141,7 +141,40 @@ with tab1:
         labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計プレイ数'},
         opacity=df_all_p['is_selected'].map({True: 1.0, False: 0.4})
     )
-    fig_p.update_layout(xaxis=dict(range=[-30, 30], scaleanchor="y", scaleratio=1), yaxis=dict(range=[-30, 30]), width=700, height=700)
+    # --- タブ1: 選手分析のレイアウト修正 ---
+    fig_p.update_layout(
+        # グラフの軸設定（アスペクト比を1:1に固定）
+        xaxis=dict(
+            range=[-30, 30], 
+            title="攻撃評価",
+            gridcolor='lightgray',
+            # 【追加】スパイクラインの設定
+            showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"
+        ),
+        yaxis=dict(
+            range=[-30, 30], 
+            title="守備評価",
+            gridcolor='lightgray', 
+            scaleanchor="x", 
+            scaleratio=1,
+            # 【追加】スパイクラインの設定
+            showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"
+        ),
+        width=None, # 幅は自動調整（stretch）に任せるためNoneに
+        height=700, 
+        margin=dict(l=20, r=20, t=20, b=100), # 凡例のために下マージンを確保
+        plot_bgcolor='white',
+        hovermode='closest',
+
+        # --- 【追加】凡例をグラフ下部に配置 ---
+        legend=dict(
+            orientation="h",   # 水平に並べる
+            yanchor="top", 
+            y=-0.15,           # グラフの下に配置
+            xanchor="center", 
+            x=0.5              # 中央寄せ
+        )
+    )
     fig_p.update_traces(textposition='top center')
     fig_p.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
