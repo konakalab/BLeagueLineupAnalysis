@@ -191,21 +191,39 @@ with tab2:
     
     # 表示対象をフィルタリング
     if target_p_id:
-        # 注目選手が選ばれている時は、その選手を含む行だけを表示
         df_table = df_plot[df_plot['DisplayGroup'] == "★注目選手含む"].copy()
     else:
-        # 選ばれていない時はチーム全員
-        df_table = df_plot[df_plot['TeamID'] == target_team_id].copy()
+        df_table = df_table = df_plot[df_plot['TeamID'] == target_team_id].copy()
 
     if not df_table.empty:
-        # 列名を整えて表示
+        # 表示用データの整理
         output_l = df_table[['UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']].sort_values('TotalApps_L', ascending=False)
         output_l.columns = ['ラインナップ構成', '合計プレイ数', '攻撃評価', '守備評価']
         
+        # 【修正箇所】st.dataframe の設定変更
         st.dataframe(
             output_l.style.format({'攻撃評価': '{:.1f}', '守備評価': '{:.1f}'}),
-            width="stretch",
-            hide_index=True
+            use_container_width=True,  # 1. コンテナの幅いっぱいに広げる
+            hide_index=True,
+            # 2. 列ごとの幅の比率や挙動を細かく制御
+            column_config={
+                "ラインナップ構成": st.column_config.TextColumn(
+                    "ラインナップ構成",
+                    width="large", # 選手名が並ぶので広めに確保
+                ),
+                "合計プレイ数": st.column_config.NumberColumn(
+                    "合計プレイ数",
+                    width="small",
+                ),
+                "攻撃評価": st.column_config.NumberColumn(
+                    "攻撃評価",
+                    width="small",
+                ),
+                "守備評価": st.column_config.NumberColumn(
+                    "守備評価",
+                    width="small",
+                ),
+            }
         )
     else:
         st.info("該当するラインナップデータがありません。")
