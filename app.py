@@ -14,7 +14,7 @@ def load_all_data():
     df_p = pd.read_csv('table_players.csv')
     df_l = pd.read_csv('table_lineups.csv')
     
-    # 前処理
+    # 前処理（数値変換など）
     for df in [df_t, df_p, df_l]:
         df.columns = [str(c).strip() for c in df.columns]
         num_cols = ['TeamID', 'PlayerID', 'Order', 'PlayerNo', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'OFFApps', 'DEFApps']
@@ -25,12 +25,38 @@ def load_all_data():
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0).round(1)
 
+    # --- IDから「名前」を引く辞書と、「背番号」を引く辞書を作成 ---
     p_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNameJ']))
-    df_l['UnitNames'] = df_l.apply(lambda r: " / ".join([p_dict.get(int(r[f'Lineup_{i}']), "??") for i in range(1,6)]), axis=1)
+    p_no_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNo']))
+
+    # --- ラインナップ内の選手名を背番号順に並び替えて結合する関数 ---
+    def get_sorted_unit_names(row):
+        p_ids = []
+        for i in range(1, 6):
+            pid = int(row[f'Lineup_{i}'])
+            if pid != 0:
+                p_ids.append(pid)
+        
+        # (背番号, 名前) のタプルリストを作成
+        p_info = []
+        for pid in p_ids:
+            no = p_no_dict.get(pid, 999) # 背番号がない場合は末尾へ
+            name = p_dict.get(pid, "??")
+            p_info.append((no, name))
+        
+        # 背番号(x[0])で昇順ソート
+        p_info.sort(key=lambda x: x[0])
+        
+        # 名前だけを結合
+        return " / ".join([x[1] for x in p_info])
+
+    # UnitNames の作成に適用
+    df_l['UnitNames'] = df_l.apply(get_sorted_unit_names, axis=1)
+    
     df_l['LineupSet'] = df_l.apply(lambda r: {int(r[f'Lineup_{i}']) for i in range(1, 6)}, axis=1)
     df_l['TotalApps_L'] = df_l['OFFApps'] + df_l['DEFApps']
 
-    # --- 期間取得のロジックを復活 ---
+    # --- 期間取得のロジック ---
     period_str = "データ期間不明"
     try:
         df_res = pd.read_csv('table_BLeagueResult_2025.csv')
@@ -42,7 +68,6 @@ def load_all_data():
     except:
         pass
         
-    # 4つの値を返す
     return df_t, df_p, df_l, period_str
 
 df_team, df_player, df_lineup, analysis_period = load_all_data()
