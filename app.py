@@ -70,8 +70,8 @@ with tab1:
             text='PlayerNo',
             color='TotalApps',
             labels={
-                'HensatiOFF': '攻撃評価 (偏差値)',
-                'HensatiDEF': '守備評価 (偏差値)',
+                'HensatiOFF': '攻撃評価',
+                'HensatiDEF': '守備評価',
                 'TotalApps': '合計出場数'
             },
             hover_name='PlayerNameJ',
@@ -87,8 +87,8 @@ with tab1:
             yaxis=dict(range=[ax_min, ax_max]),
             width=700, height=700
         )
-        fig.add_hline(y=50, line_dash="dot", line_color="gray")
-        fig.add_vline(x=50, line_dash="dot", line_color="gray")
+        fig.add_hline(y=0, line_dash="dot", line_color="gray")
+        fig.add_vline(x=0, line_dash="dot", line_color="gray")
         
         st.plotly_chart(fig, use_container_width=True)
         
