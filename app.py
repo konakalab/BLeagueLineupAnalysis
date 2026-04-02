@@ -125,7 +125,7 @@ with tab1:
 with tab2:
     st.subheader("ラインナップ別 評価値分布")
     
-    # 注目選手の選択処理
+    # --- 1. 注目選手の選択処理 ---
     team_p = df_player[df_player['TeamID'] == target_team_id].sort_values('PlayerNo')
     p_options = ["指定なし"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_p.iterrows()]
     sel_p = st.selectbox("強調表示する選手を選択", p_options)
@@ -137,7 +137,7 @@ with tab2:
     # 判定用の一時データフレーム作成
     df_plot = df_lineup[['TeamID', 'HensatiOFF', 'HensatiDEF', 'TotalApps_L', 'UnitNames', 'LineupSet']].copy()
     
-    # 表示グループの高速判定
+    # 表示グループの判定関数
     def get_group(row):
         if target_p_id and target_p_id in row['LineupSet']:
             return "★注目選手含む"
@@ -145,14 +145,14 @@ with tab2:
 
     df_plot['DisplayGroup'] = df_plot.apply(get_group, axis=1)
     
-    # 【最重要】go.Scattergl を使った高速レンダリング
+    # --- 2. Plotly グラフ作成 ---
     fig_l = go.Figure()
     
-    # 描画設定（順序、色、透明度）
+    # 【修正箇所】透明度とサイズ係数の調整
     plot_configs = [
-        {"name": "その他", "color": "#E5ECF6", "opacity": 0.3},
-        {"name": sel_team_name, "color": "#EF553B", "opacity": 0.5},
-        {"name": "★注目選手含む", "color": "#19D3F3", "opacity": 0.75}
+        {"name": "その他", "color": "#E5ECF6", "opacity": 0.15},      # 透明度を上げ（薄く）
+        {"name": sel_team_name, "color": "#EF553B", "opacity": 0.4}, # 自チームを少し薄く
+        {"name": "★注目選手含む", "color": "#19D3F3", "opacity": 0.6}  # 注目選手も少しマイルドに
     ]
 
     for cfg in plot_configs:
@@ -166,7 +166,8 @@ with tab2:
             name=cfg["name"],
             text=sub['UnitNames'],
             marker=dict(
-                size=np.sqrt(sub['TotalApps_L'] + 1) * 1,
+                # 【修正箇所】サイズ係数を 1 -> 0.7 に縮小
+                size=np.sqrt(sub['TotalApps_L'] + 1) * 0.7, 
                 color=cfg["color"],
                 opacity=cfg["opacity"],
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
@@ -175,29 +176,30 @@ with tab2:
         ))
 
     fig_l.update_layout(
-        xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='white'),
-        yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='white', scaleanchor="x", scaleratio=1),
-        height=700, margin=dict(l=20, r=20, t=20, b=20)
+        xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='lightgray'),
+        yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1),
+        height=700, margin=dict(l=20, r=20, t=20, b=20),
+        plot_bgcolor='white'
     )
     fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
     
+    # グラフ表示
     st.plotly_chart(fig_l, use_container_width=True)
     
-    # --- 【修正2】グラフ描画の直後に以下の「表」コードを追加 ---
-    st.plotly_chart(fig_l, use_container_width=True)
-
-    # 該当チームのラインナップ表を復活
+    # --- 3. ラインナップ詳細表の表示 ---
     st.write(f"### {sel_team_name} ラインナップ詳細")
     
-    # 注目選手が選択されている場合はその選手を含むもの、そうでない場合はチーム全員を表示
+    # 表示対象をフィルタリング
     if target_p_id:
+        # 注目選手が選ばれている時は、その選手を含む行だけを表示
         df_table = df_plot[df_plot['DisplayGroup'] == "★注目選手含む"].copy()
     else:
+        # 選ばれていない時はチーム全員
         df_table = df_plot[df_plot['TeamID'] == target_team_id].copy()
 
     if not df_table.empty:
-        # 表用にデータを整形
+        # 列名を整えて表示
         output_l = df_table[['UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']].sort_values('TotalApps_L', ascending=False)
         output_l.columns = ['ユニット構成', '合計プレイ数', '攻撃評価', '守備評価']
         
@@ -207,4 +209,4 @@ with tab2:
             hide_index=True
         )
     else:
-        st.warning("該当するデータがありません。")
+        st.info("該当するラインナップデータがありません。")
