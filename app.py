@@ -189,8 +189,8 @@ with tab2:
             ),
             hovertemplate=(
                 "<b>%{text}</b><br>" +
-                "合計プレイ数: %{customdata}回<br>" + 
-                "攻撃評価: %{x}<br>" +
+                "合計プレイ数: %{customdata}回，" + 
+                "攻撃評価: %{x}，" +
                 "守備評価: %{y}<extra></extra>"
             ) if hover_setting == "all" else None
         ))
