@@ -121,25 +121,119 @@ with tab1:
     disp_df.columns = ['背番号', '選手名', '合計プレイ数', '攻撃プレイ数', '守備プレイ数', '攻撃偏差値', '守備偏差値']
     
     st.dataframe(disp_df.sort_values('合計プレイ数', ascending=False), use_container_width=True, hide_index=True)
+
 # --- タブ2: ラインナップ分析 ---
+with tab1_lineup, tab2_lineup = st.tabs(["グラフ分析", "データ一覧"]) # タブ内にさらにタブを作ると見やすいですが、今回は一つの流れで作ります
+
 with tab2:
-    st.subheader("最強ラインナップ (偏差値順)")
-    df_tl = df_lineup[df_lineup['TeamID'] == target_team_id].copy()
+    st.subheader("ラインナップ別 偏差値分布 (全体比較)")
     
-    if not df_tl.empty:
-        top_10 = df_tl.sort_values('HensatiOFF', ascending=False).head(10)
+    # 全ラインナップデータの準備
+    df_all_l = df_lineup.copy()
+    
+    # 1. サイズ計算：TotalApps (OFF+DEF) の平方根に比例させる
+    # ※ table_lineups.csv に DEFApps がない場合は OFFApps を流用するか、
+    # もしカラムがある場合は df_all_l['OFFApps'] + df_all_l['DEFApps'] としてください。
+    # ここでは安全のため OFFApps をベースに計算します。
+    df_all_l['TotalApps_L'] = df_all_l['OFFApps'] # 必要に応じて + df_all_l['DEFApps']
+    df_all_l['MarkerSize'] = np.sqrt(df_all_l['TotalApps_L'] + 1)
+    
+    # チーム所属選手のリスト（サイドバーではなく、タブ内の上部に配置）
+    team_players = df_player[df_player['TeamID'] == target_team_id].sort_values('PlayerNo')
+    p_options = ["指定なし"] + [f"{r['PlayerNo']} {r['PlayerNameJ']}" for _, r in team_players.iterrows()]
+    sel_p_lineup = st.selectbox("特定の選手が含まれるユニットを強調表示", p_options)
+    
+    target_p_id = None
+    if sel_p_lineup != "指定なし":
+        sel_p_no = int(sel_p_lineup.split()[0])
+        target_p_id = team_players[team_players['PlayerNo'] == sel_p_no]['PlayerID'].values[0]
+
+    # 表示グループ判定
+    def classify_lineup(row):
+        if target_p_id:
+            ids = [row[f'Lineup_{i}'] for i in range(1, 6)]
+            if target_p_id in ids:
+                return "★注目選手含む"
+        if row['TeamID'] == target_team_id:
+            return sel_team_name
+        return "その他"
+
+    df_all_l['DisplayGroup'] = df_all_l.apply(classify_lineup, axis=1)
+    
+    # 描画順：その他(0) -> チーム(1) -> 注目選手(2)
+    z_order = {"その他": 0, sel_team_name: 1, "★注目選手含む": 2}
+    df_all_l['z'] = df_all_l['DisplayGroup'].map(z_order)
+    df_all_l = df_all_l.sort_values('z')
+
+    # 5人の名前を取得（Tooltip用）
+    def get_unit_names(row):
+        names = []
+        for i in range(1, 6):
+            pid = row[f'Lineup_{i}']
+            pname = df_player[df_player['PlayerID'] == pid]['PlayerNameJ'].values
+            names.append(pname[0] if len(pname) > 0 else "Unknown")
+        return " / ".join(names)
+
+    # 散布図作成
+    fig_l = px.scatter(
+        df_all_l,
+        x='HensatiOFF',
+        y='HensatiDEF',
+        color='DisplayGroup',
+        size='MarkerSize',
+        hover_name=df_all_l.apply(get_unit_names, axis=1),
+        hover_data={
+            'HensatiOFF': ':.1f',
+            'HensatiDEF': ':.1f',
+            'TotalApps_L': True,
+            'DisplayGroup': False,
+            'MarkerSize': False,
+            'z': False
+        },
+        color_discrete_map={
+            sel_team_name: '#EF553B',      # チームカラー（赤）
+            "★注目選手含む": '#19D3F3',      # 注目選手（シアン）
+            'その他': '#E5ECF6'            # その他（グレー）
+        },
+        labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps_L': 'プレイ数'},
+        opacity=df_all_l['DisplayGroup'].map(lambda x: 1.0 if x != "その他" else 0.3)
+    )
+
+    fig_l.update_layout(
+        xaxis=dict(range=[-30, 30], title="攻撃評価 (偏差値)", scaleanchor="y", scaleratio=1),
+        yaxis=dict(range=[-30, 30], title="守備評価 (偏差値)"),
+        width=800, height=800
+    )
+    fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
+    fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
+
+    st.plotly_chart(fig_l, use_container_width=True)
+
+    # --- ラインナップテーブル ---
+    st.write(f"### {sel_team_name} ラインナップ・スタッツ")
+    
+    # 表示対象を自チームに絞る
+    df_table = df_all_l[df_all_l['TeamID'] == target_team_id].copy()
+    
+    if not df_table.empty:
+        df_table['ユニット構成'] = df_table.apply(get_unit_names, axis=1)
         
-        def get_p_names(row):
-            names = []
-            for i in range(1, 6):
-                p_id = row[f'Lineup_{i}']
-                found = df_player[df_player['PlayerID'] == p_id]['PlayerNameJ'].values
-                names.append(found[0] if len(found) > 0 else f"ID:{p_id}")
-            return " / ".join(names)
+        # 注目選手が選ばれている場合、その選手を含むものを上に持ってくる
+        if target_p_id:
+            df_table['is_hit'] = df_table['DisplayGroup'] == "★注目選手含む"
+            df_table = df_table.sort_values(['is_hit', 'TotalApps_L'], ascending=False)
+        else:
+            df_table = df_table.sort_values('TotalApps_L', ascending=False)
+
+        # 列の整理
+        output_table = df_table[['ユニット構成', 'TotalApps_L', 'RatingOFF', 'HensatiOFF', 'HensatiDEF']].copy()
+        output_table.columns = ['ユニット構成', 'プレイ数', 'Rating', '攻撃偏差値', '守備偏差値']
         
-        top_10['ユニット構成'] = top_10.apply(get_p_names, axis=1)
-        res_lineup = top_10[['ユニット構成', 'OFFApps', 'RatingOFF', 'HensatiOFF']].copy()
-        res_lineup.columns = ['ユニット構成', '攻撃プレイ数', 'Rating', '偏差値']
-        st.table(res_lineup)
+        # 数値の丸め
+        output_table['Rating'] = output_table['Rating'].round(1)
+        output_table['攻撃偏差値'] = output_table['攻撃偏差値'].round(1)
+        output_table['守備偏差値'] = output_table['守備偏差値'].round(1)
+
+        st.dataframe(output_table, use_container_width=True, hide_index=True)
     else:
-        st.info("ラインナップデータがありません。")
+        st.info("データがありません")
