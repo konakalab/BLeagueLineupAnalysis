@@ -161,7 +161,7 @@ with tab2:
         sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]]
         if sub.empty: continue
         
-        # 判定ロジック（名称を「★注目選手含む」に合わせました）
+        # 判定ロジック
         if cfg["name"] == "その他":
             hover_setting = "skip"
         elif target_p_id is not None:
@@ -183,12 +183,12 @@ with tab2:
                 opacity=cfg["opacity"],
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
             ),
-            # 【追加】ツールチップの外観設定（テンプレートの内容は変えずに見栄えを調整）
+            # ホバーラベルの外観調整（重なりで見づらくなるのを防ぐ）
             hoverlabel=dict(
-                bgcolor="rgba(255, 255, 255, 0.9)", # 背景を白（少し透過）にして文字を読みやすく
-                bordercolor="gray",                # 枠線をつけてマーカーとの境界を明示
+                bgcolor="rgba(255, 255, 255, 0.9)", 
+                bordercolor="gray",
                 font_size=12,
-                namelength=0                       # 横のラベル（トレース名）を消してコンパクトに
+                namelength=0
             ),
             hovertemplate=(
                 "<b>%{text}</b><br>" +
@@ -200,18 +200,14 @@ with tab2:
 
     # --- グラフ全体のレイアウト設定 ---
     fig_l.update_layout(
-        # 【重要】最も近い1点だけに反応させることで、重なりによる混雑を回避
-        hovermode='closest', 
-        # ホバーラベルがグラフの端で切れないように調整
-        hoverdistance=100,
+        hovermode='closest', # 重なり回避の最重要設定
         xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='lightgray'),
         yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1),
         height=700, margin=dict(l=20, r=20, t=20, b=20),
         plot_bgcolor='white'
     )
     
-    # ツールチップの表示位置を最適化する設定
-    fig_l.update_traces(hoveron='points')
+    # エラーの原因となった行 (fig_l.update_traces(hoveron='points')) は削除しました
     
     fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
