@@ -83,8 +83,8 @@ with tab1:
 
     # 軸の設定（-30から30）と点線
     fig.update_layout(
-        xaxis=dict(range=[-30, 30], title="攻撃評価 (偏差値)", scaleanchor="y", scaleratio=1),
-        yaxis=dict(range=[-30, 30], title="守備評価 (偏差値)"),
+        xaxis=dict(range=[-30, 30], title="攻撃評価", scaleanchor="y", scaleratio=1),
+        yaxis=dict(range=[-30, 30], title="守備評価"),
         width=800, height=800,
         legend_title_text="表示グループ",
         showlegend=True
@@ -96,7 +96,7 @@ with tab1:
     st.plotly_chart(fig, use_container_width=True)
     
     # 選手一覧表（選択チームのみ）
-    st.write(f"### {sel_team_name} 選手スタッツ一覧")
+    st.write(f"### {sel_team_name} 選手評価値一覧")
     df_tp = df_all[df_all['is_selected']].copy()
     disp_df = df_tp[['PlayerNo', 'PlayerNameJ', 'TotalApps', 'OFFApps', 'DEFApps', 'HensatiOFF', 'HensatiDEF']].copy()
     disp_df['HensatiOFF'] = disp_df['HensatiOFF'].round(1)
