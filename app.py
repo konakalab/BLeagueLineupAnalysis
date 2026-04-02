@@ -47,11 +47,11 @@ with tab1:
             x='HensatiOFF', 
             y='HensatiDEF',
             text='PlayerNameJ',
-            color='TotalApps',  # 合計出場数に連動
+            color='TotalApps',  # 合計プレイ数に連動
             labels={
                 'HensatiOFF': '攻撃評価 (偏差値)',
                 'HensatiDEF': '守備評価 (偏差値)',
-                'TotalApps': '合計出場数'
+                'TotalApps': '合計プレイ数'
             },
             hover_data=['PlayerNo', 'OFFApps', 'DEFApps'],
             color_continuous_scale='Viridis', # 出場数が見やすい色合い
