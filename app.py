@@ -161,29 +161,36 @@ with tab2:
         sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]]
         if sub.empty: continue
         
-        # ツールチップを表示するかどうかの判定
-        hover_setting = "all" if cfg["name"] != "その他" else "skip"
-        
+        # --- ツールチップ表示の判定ロジックを修正 ---
+        # 1. 基本的に「その他」は常に skip
+        # 2. 注目選手(target_p_id)が選択されている場合、その選手を含む(★)グループ以外も skip
+        if cfg["name"] == "その他":
+            hover_setting = "skip"
+        elif target_p_id is not None:
+            # 注目選手選択中
+            hover_setting = "all" if cfg["name"] == "注目選手" else "skip"
+        else:
+            # 注目選手未選択：自チーム(sel_team_name)のデータはすべて表示
+            hover_setting = "all"
+
         fig_l.add_trace(go.Scattergl(
             x=sub['HensatiOFF'],
             y=sub['HensatiDEF'],
             mode='markers',
             name=cfg["name"],
             text=sub['UnitNames'],
-            # 【新規追加】hovertemplateで使うためのカスタムデータをセット
             customdata=sub['TotalApps_L'], 
             hoverinfo=hover_setting,
             marker=dict(
-                size=np.sqrt(sub['TotalApps_L'] + 1) *1.2, 
+                size=np.sqrt(sub['TotalApps_L'] + 1) * 1.2, 
                 color=cfg["color"],
                 opacity=cfg["opacity"],
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
             ),
-            # 【修正】hovertemplateに「プレイ数」の行を追加
             hovertemplate=(
                 "<b>%{text}</b><br>" +
-                "合計プレイ数: %{customdata}回  " + # customdataから取得
-                "攻撃評価: %{x}  " +
+                "合計プレイ数: %{customdata}回<br>" + 
+                "攻撃評価: %{x}<br>" +
                 "守備評価: %{y}<extra></extra>"
             ) if hover_setting == "all" else None
         ))
