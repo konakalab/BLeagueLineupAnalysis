@@ -132,7 +132,9 @@ with tab2:
     
     target_p_id = None
     if sel_p != "指定なし":
-        target_p_id = int(team_p[team_p['PlayerNo'] == int(sel_p.split()[0])]['PlayerID'].iloc[0])
+        # 選択された文字列から PlayerID を取得
+        sel_no = int(sel_p.split()[0])
+        target_p_id = int(team_p[team_p['PlayerNo'] == sel_no]['PlayerID'].iloc[0])
 
     # 判定用の一時データフレーム作成
     df_plot = df_lineup[['TeamID', 'HensatiOFF', 'HensatiDEF', 'TotalApps_L', 'UnitNames', 'LineupSet']].copy()
@@ -140,7 +142,7 @@ with tab2:
     # 表示グループの判定関数
     def get_group(row):
         if target_p_id and target_p_id in row['LineupSet']:
-            return "★選択選手含む"
+            return "★注目選手含む"
         return sel_team_name if row['TeamID'] == target_team_id else "その他"
 
     df_plot['DisplayGroup'] = df_plot.apply(get_group, axis=1)
@@ -148,11 +150,11 @@ with tab2:
     # --- 2. Plotly グラフ作成 ---
     fig_l = go.Figure()
     
-    # 【修正箇所】透明度とサイズ係数の調整
+    # 透明度の調整
     plot_configs = [
-        {"name": "その他", "color": "#E5ECF6", "opacity": 0.2},      # 透明度を上げ（薄く）
-        {"name": sel_team_name, "color": "#EF553B", "opacity": 0.5}, # 自チームを少し薄く
-        {"name": "★選択選手含む", "color": "#19D3F3", "opacity": 0.75}  # 注目選手も少しマイルドに
+        {"name": "その他", "color": "#E5ECF6", "opacity": 0.15},
+        {"name": sel_team_name, "color": "#EF553B", "opacity": 0.4},
+        {"name": "★注目選手含む", "color": "#19D3F3", "opacity": 0.6}
     ]
 
     for cfg in plot_configs:
@@ -166,7 +168,8 @@ with tab2:
             name=cfg["name"],
             text=sub['UnitNames'],
             marker=dict(
-                size=np.sqrt(sub['TotalApps_L'] + 1) * 1.0, 
+                # サイズ係数を 0.7 に調整
+                size=np.sqrt(sub['TotalApps_L'] + 1) * 0.7, 
                 color=cfg["color"],
                 opacity=cfg["opacity"],
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
@@ -183,47 +186,36 @@ with tab2:
     fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
     
-    # グラフ表示
     st.plotly_chart(fig_l, use_container_width=True)
     
     # --- 3. ラインナップ詳細表の表示 ---
     st.write(f"### {sel_team_name} ラインナップ詳細")
     
-    # 表示対象をフィルタリング
+    # フィルタリング処理（チームIDと選手IDで確実に抽出）
     if target_p_id:
-        df_table = df_plot[df_plot['DisplayGroup'] == "★注目選手含む"].copy()
+        df_table = df_plot[
+            (df_plot['TeamID'] == target_team_id) & 
+            (df_plot['LineupSet'].apply(lambda x: target_p_id in x))
+        ].copy()
     else:
-        df_table = df_table = df_plot[df_plot['TeamID'] == target_team_id].copy()
+        df_table = df_plot[df_plot['TeamID'] == target_team_id].copy()
 
     if not df_table.empty:
-        # 表示用データの整理
+        # データの整形とカラム名の統一
         output_l = df_table[['UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']].sort_values('TotalApps_L', ascending=False)
         output_l.columns = ['ラインナップ構成', '合計プレイ数', '攻撃評価', '守備評価']
         
-        # 【修正箇所】st.dataframe の設定変更
+        # 表を幅いっぱいに収める設定
         st.dataframe(
             output_l.style.format({'攻撃評価': '{:.1f}', '守備評価': '{:.1f}'}),
-            use_container_width=True,  # 1. コンテナの幅いっぱいに広げる
+            use_container_width=True,
             hide_index=True,
-            # 2. 列ごとの幅の比率や挙動を細かく制御
             column_config={
-                "ラインナップ構成": st.column_config.TextColumn(
-                    "ラインナップ構成",
-                    width="large", # 選手名が並ぶので広めに確保
-                ),
-                "合計プレイ数": st.column_config.NumberColumn(
-                    "合計プレイ数",
-                    width="small",
-                ),
-                "攻撃評価": st.column_config.NumberColumn(
-                    "攻撃評価",
-                    width="small",
-                ),
-                "守備評価": st.column_config.NumberColumn(
-                    "守備評価",
-                    width="small",
-                ),
+                "ラインナップ構成": st.column_config.TextColumn("ラインナップ構成", width="large"),
+                "合計プレイ数": st.column_config.NumberColumn("合計プレイ数", width="small"),
+                "攻撃評価": st.column_config.NumberColumn("攻撃評価", width="small"),
+                "守備評価": st.column_config.NumberColumn("守備評価", width="small"),
             }
         )
     else:
-        st.info("該当するラインナップデータがありません。")
+        st.info("該当するラインナップデータが見つかりませんでした。")
