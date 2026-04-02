@@ -83,7 +83,9 @@ with st.expander("💡 この分析ツールの使い方はこちら"):
     2. 各グラフのドットにマウスを合わせると詳細データが表示されます。
     3. ラインナップ分析では、特定の選手を強調して表示できます。
     """)
-    
+st.caption(f"Developed by [@konakalab](https://x.com/konakalab) | 📅 データ更新：{analysis_period}")
+
+
 tab1, tab2, tab3 = st.tabs(["選手分析", "ラインナップ分析","評価方法の概要"])
 
 # --- タブ1: 選手分析 ---
