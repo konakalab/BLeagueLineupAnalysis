@@ -77,7 +77,7 @@ with tab1:
         hover_name='PlayerNameJ',
         hover_data={'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 'TotalApps': True, 'DisplayGroup': False, 'MarkerSize': False},
         color_discrete_map={sel_team_name: '#EF553B', 'その他': '#E5ECF6'}, # 選択チームを赤、その他を薄いグレーに
-        labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計出場数'},
+        labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計プレイ数'},
         opacity=df_all['is_selected'].map({True: 1.0, False: 0.4}) # その他を半透明に
     )
 
