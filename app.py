@@ -16,7 +16,7 @@ def load_raw_csv():
     for df in [df_t, df_p, df_l]:
         df.columns = [str(c).strip().replace('\n', '') for c in df.columns]
         # orderを含む主要ID系を数値型に変換
-        cols_to_fix = ['TeamID', 'PlayerID', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'order']
+        cols_to_fix = ['TeamID', 'PlayerID', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'Order']
         for col in cols_to_fix:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
