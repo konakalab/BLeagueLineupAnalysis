@@ -265,6 +265,33 @@ with tab2:
             ) if hover_setting == "all" else None
         ))
 
+    # --- 3. 選択選手の個人評価値を基準線として追加 ---
+        if target_p_id is not None:
+            # df_player から選択された選手の評価値を取得
+            p_stats = df_player[df_player['PlayerID'] == target_p_id]
+            if not p_stats.empty:
+                p_off = p_stats['HensatiOFF'].iloc[0]
+                p_def = p_stats['HensatiDEF'].iloc[0]
+                
+                # 攻撃評価の垂直線
+                fig_l.add_vline(
+                    x=p_off, 
+                    line_width=1.5, 
+                    line_dash="dash", 
+                    line_color="#19D3F3",
+                    annotation_text=f" 選手平均(攻): {p_off}",
+                    annotation_position="top left"
+                )
+                # 守備評価の水平線
+                fig_l.add_hline(
+                    y=p_def, 
+                    line_width=1.5, 
+                    line_dash="dash", 
+                    line_color="#19D3F3",
+                    annotation_text=f" 選手平均(守): {p_def}",
+                    annotation_position="bottom right"
+                )
+                
     # --- グラフ全体のレイアウト設定 ---
     fig_l.update_layout(
         hovermode='closest',
