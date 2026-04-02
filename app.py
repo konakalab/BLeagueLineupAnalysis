@@ -80,4 +80,50 @@ with tab1:
 
         all_vals = pd.concat([df_tp['HensatiOFF'], df_tp['HensatiDEF']])
         ax_min = min(all_vals.min(), 40) - 2
-        ax_max = max(all_vals.max(), 60
+        ax_max = max(all_vals.max(), 60) + 2
+        
+        fig.update_layout(
+            xaxis=dict(range=[ax_min, ax_max], scaleanchor="y", scaleratio=1),
+            yaxis=dict(range=[ax_min, ax_max]),
+            width=700, height=700
+        )
+        fig.add_hline(y=50, line_dash="dot", line_color="gray")
+        fig.add_vline(x=50, line_dash="dot", line_color="gray")
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        st.write("### 選手スタッツ一覧 (出場数順)")
+        disp_df = df_tp[['PlayerNo', 'PlayerNameJ', 'TotalApps', 'OFFApps', 'DEFApps', 'HensatiOFF', 'HensatiDEF']].copy()
+        disp_df['HensatiOFF'] = disp_df['HensatiOFF'].round(1)
+        disp_df['HensatiDEF'] = disp_df['HensatiDEF'].round(1)
+        disp_df.columns = ['背番号', '選手名', '合計プレイ数', '攻撃プレイ数', '守備プレイ数', '攻撃偏差値', '守備偏差値']
+        
+        disp_df = disp_df.sort_values('合計プレイ数', ascending=False)
+        st.dataframe(disp_df, use_container_width=True, hide_index=True)
+    else:
+        st.warning("選手データが見つかりませんでした。")
+
+# --- タブ2: ラインナップ分析 ---
+with tab2:
+    st.subheader("最強ラインナップ (偏差値順)")
+    df_tl = df_lineup[df_lineup['TeamID'] == target_team_id].copy()
+    
+    if not df_tl.empty:
+        top_10 = df_tl.sort_values('HensatiOFF', ascending=False).head(10)
+        
+        def get_p_names(row):
+            names = []
+            for i in range(1, 6):
+                p_id = row[f'Lineup_{i}']
+                found = df_player[df_player['PlayerID'] == p_id]['PlayerNameJ'].values
+                names.append(found[0] if len(found) > 0 else f"ID:{p_id}")
+            return " / ".join(names)
+        
+        top_10['ユニット構成'] = top_10.apply(get_p_names, axis=1)
+        
+        res_lineup = top_10[['ユニット構成', 'OFFApps', 'RatingOFF', 'HensatiOFF']].copy()
+        res_lineup.columns = ['ユニット構成', '攻撃プレイ数', 'Rating', '偏差値']
+        
+        st.table(res_lineup)
+    else:
+        st.info("ラインナップデータがありません。")
