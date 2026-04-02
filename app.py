@@ -166,8 +166,12 @@ with tab1:
         title={
             'text': f"<b>{sel_team_name}</b> 選手評価分布<br><span style='font-size:12px; color:gray;'>点サイズ: 合計プレイ数 / ラベル: 背番号</span>",
             'x': 0.5,
-            'xanchor': 'center'
+            'y': 0.95,          # 【追加】タイトルの垂直位置（0〜1の範囲。0.95は上端に近い位置）
+            'xanchor': 'center',
+            'yanchor': 'top'    # 【追加】タイトルの上端を基準にする
         },
+        # --- マージンの調整 ---
+        margin=dict(l=20, r=20, t=100, b=100), # 【修正】t（上部）を 20 から 100 に増やしました
         xaxis=dict(
             range=[-30, 30], title="攻撃評価", gridcolor='lightgray',
             showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"
@@ -176,7 +180,7 @@ with tab1:
             range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1,
             showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"
         ),
-        height=700, margin=dict(l=20, r=20, t=20, b=100),
+        height=750, margin=dict(l=20, r=20, t=20, b=100),
         plot_bgcolor='white', hovermode='closest',
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
