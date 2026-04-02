@@ -101,8 +101,8 @@ with tab1:
 
     # 軸の設定（-30から30）と点線
     fig.update_layout(
-        xaxis=dict(range=[-30, 30], title="攻撃評価 (偏差値)", scaleanchor="y", scaleratio=1),
-        yaxis=dict(range=[-30, 30], title="守備評価 (偏差値)"),
+        xaxis=dict(range=[-30, 30], title="攻撃評価", scaleanchor="y", scaleratio=1),
+        yaxis=dict(range=[-30, 30], title="守備評価"),
         width=800, height=800,
         legend_title_text="表示グループ"
     )
@@ -118,7 +118,7 @@ with tab1:
     disp_df = df_tp[['PlayerNo', 'PlayerNameJ', 'TotalApps', 'OFFApps', 'DEFApps', 'HensatiOFF', 'HensatiDEF']].copy()
     disp_df['HensatiOFF'] = disp_df['HensatiOFF'].round(1)
     disp_df['HensatiDEF'] = disp_df['HensatiDEF'].round(1)
-    disp_df.columns = ['背番号', '選手名', '合計プレイ数', '攻撃プレイ数', '守備プレイ数', '攻撃偏差値', '守備偏差値']
+    disp_df.columns = ['背番号', '選手名', '合計プレイ数', '攻撃プレイ数', '守備プレイ数', '攻撃評価値', '守備評価値']
     
     st.dataframe(disp_df.sort_values('合計プレイ数', ascending=False), use_container_width=True, hide_index=True)
 
