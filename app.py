@@ -125,14 +125,14 @@ with tab1:
     is_league_mode = (target_team_id is None)
 
     if is_league_mode:
-        st.subheader(f"リーグ全体 選手評価分布 ({sel_league})")
+        st.subheader(f"リーグ全体 選手評価分布 ({sel_league}) 分析対象期間：{analysis_period}")
         df_all_p['DisplayGroup'] = sel_league
         df_all_p['is_selected'] = True
         df_all_p['Label'] = "" # リーグ全体ではラベル非表示（密集回避）
         color_map = {sel_league: '#636EFA'}
         opacity_val = 0.3
     else:
-        st.subheader(f"選手別 評価値分布 ({sel_team_name})")
+        st.subheader(f"選手別 評価値分布 ({sel_team_name}) 分析対象期間：{analysis_period}")
         df_all_p['is_selected'] = (df_all_p['TeamID'] == target_team_id)
         df_all_p['DisplayGroup'] = df_all_p['is_selected'].map({True: sel_team_name, False: 'その他'})
         # 自チームの背番号のみ表示
