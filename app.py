@@ -177,6 +177,8 @@ with tab2:
         ))
 
     fig_l.update_layout(
+        # hovermode を 'closest' にすることで、重なりの中でも最も近い1点に集中させます
+        hovermode='closest',
         xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='lightgray'),
         yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1),
         height=700, margin=dict(l=20, r=20, t=20, b=20),
