@@ -129,13 +129,20 @@ with tab2:
     # 全ラインナップデータの準備
     df_all_l = df_lineup.copy()
     
+    # 列名の前後にある余計な空白を削除（KeyError対策）
+    df_all_l.columns = df_all_l.columns.str.strip()
+    
     # 1. サイズ計算：TotalApps (OFFApps + DEFApps) の平方根に比例
-    # ※ table_lineups.csv に DEFApps カラムがあることを前提としています
-    # もしエラーが出る場合は df_all_l['OFFApps'] のみに書き換えてください
-    df_all_l['TotalApps_L'] = df_all_l['OFFApps'] + df_all_l['DEFApps']
+    # 安全のため、列が存在するかチェックしてから計算します
+    if 'OFFApps' in df_all_l.columns and 'DEFApps' in df_all_l.columns:
+        df_all_l['TotalApps_L'] = df_all_l['OFFApps'] + df_all_l['DEFApps']
+    else:
+        # 万が一どちらかが無い場合はある方を使う（バックアップロジック）
+        df_all_l['TotalApps_L'] = df_all_l.get('OFFApps', 0) + df_all_l.get('DEFApps', 0)
+        
     df_all_l['MarkerSize'] = np.sqrt(df_all_l['TotalApps_L'] + 1)
     
-    # チーム所属選手のリスト（強調表示用）
+    # チーム所属選手のリスト
     team_players = df_player[df_player['TeamID'] == target_team_id].sort_values('PlayerNo')
     p_options = ["指定なし"] + [f"{r['PlayerNo']} {r['PlayerNameJ']}" for _, r in team_players.iterrows()]
     sel_p_lineup = st.selectbox("特定の選手が含まれるユニットを強調表示", p_options)
@@ -188,9 +195,9 @@ with tab2:
             'z': False
         },
         color_discrete_map={
-            sel_team_name: '#EF553B',      # チームカラー（赤）
-            "★注目選手含む": '#19D3F3',      # 注目選手（シアン）
-            'その他': '#E5ECF6'            # その他（グレー）
+            sel_team_name: '#EF553B',
+            "★注目選手含む": '#19D3F3',
+            'その他': '#E5ECF6'
         },
         labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps_L': '合計プレイ数'},
         opacity=df_all_l['DisplayGroup'].map(lambda x: 1.0 if x != "その他" else 0.3)
@@ -208,13 +215,10 @@ with tab2:
 
     # --- ラインナップテーブル ---
     st.write(f"### {sel_team_name} ラインナップ・スタッツ")
-    
     df_table = df_all_l[df_all_l['TeamID'] == target_team_id].copy()
     
     if not df_table.empty:
         df_table['ユニット構成'] = df_table.apply(get_unit_names, axis=1)
-        
-        # ソート順の設定
         if target_p_id:
             df_table['is_hit'] = df_table['DisplayGroup'] == "★注目選手含む"
             df_table = df_table.sort_values(['is_hit', 'TotalApps_L'], ascending=False)
@@ -223,11 +227,8 @@ with tab2:
 
         output_table = df_table[['ユニット構成', 'TotalApps_L', 'RatingOFF', 'HensatiOFF', 'HensatiDEF']].copy()
         output_table.columns = ['ユニット構成', '合計プレイ数', 'Rating', '攻撃偏差値', '守備偏差値']
-        
         output_table['Rating'] = output_table['Rating'].round(1)
         output_table['攻撃偏差値'] = output_table['攻撃偏差値'].round(1)
         output_table['守備偏差値'] = output_table['守備偏差値'].round(1)
 
         st.dataframe(output_table, use_container_width=True, hide_index=True)
-    else:
-        st.info("データがありません")
