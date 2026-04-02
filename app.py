@@ -180,7 +180,8 @@ with tab1:
             range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1,
             showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"
         ),
-        height=750, margin=dict(l=20, r=20, t=20, b=100),
+        height=750,
+        margin=dict(l=20, r=20, t=20, b=100),
         plot_bgcolor='white', hovermode='closest',
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
