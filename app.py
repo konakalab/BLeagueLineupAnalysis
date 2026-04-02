@@ -77,6 +77,13 @@ target_team_id = int(teams_sorted[teams_sorted['Team'] == sel_team_name]['TeamID
 st.title(f"🏀 Bリーグ選手評価：{sel_team_name} ")
 st.info(f"📅 分析対象期間：{analysis_period}")
 
+with st.expander("💡 この分析ツールの使い方はこちら"):
+    st.write("""
+    1. 左側のサイドバーでリーグとチームを選択してください。
+    2. 各グラフのドットにマウスを合わせると詳細データが表示されます。
+    3. ラインナップ分析では、特定の選手を強調して表示できます。
+    """)
+    
 tab1, tab2 = st.tabs(["選手分析", "ラインナップ分析"])
 
 # --- タブ1: 選手分析 ---
