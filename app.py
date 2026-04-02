@@ -165,7 +165,7 @@ with tab2:
         if cfg["name"] == "その他":
             hover_setting = "skip"
         elif target_p_id is not None:
-            hover_setting = "all" if cfg["name"] == "★注目選手含む" else "skip"
+            hover_setting = "all" if cfg["name"] == "注目選手" else "skip"
         else:
             hover_setting = "all"
 
