@@ -13,29 +13,36 @@ def load_all_data():
     df_p = pd.read_csv('table_players.csv')
     df_l = pd.read_csv('table_lineups.csv')
     
+    # 前処理
     for df in [df_t, df_p, df_l]:
         df.columns = [str(c).strip() for c in df.columns]
-        # ID系・カウント系を整数に固定
         num_cols = ['TeamID', 'PlayerID', 'Order', 'PlayerNo', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'OFFApps', 'DEFApps']
         for col in num_cols:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
-        # 評価値を小数点1桁に固定
         for col in ['HensatiOFF', 'HensatiDEF', 'RatingOFF']:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0).round(1)
 
-    # 【高速化】名前引き辞書を一度だけ作成
     p_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNameJ']))
-    
-    # 【高速化】全ユニット名をここで連結（applyを一度きりにする）
     df_l['UnitNames'] = df_l.apply(lambda r: " / ".join([p_dict.get(int(r[f'Lineup_{i}']), "??") for i in range(1,6)]), axis=1)
-    
-    # 【高速化】判定用の集合(set)を事前に作成
     df_l['LineupSet'] = df_l.apply(lambda r: {int(r[f'Lineup_{i}']) for i in range(1, 6)}, axis=1)
-    
     df_l['TotalApps_L'] = df_l['OFFApps'] + df_l['DEFApps']
-    return df_t, df_p, df_l
+
+    # --- 期間取得のロジックを復活 ---
+    period_str = "データ期間不明"
+    try:
+        df_res = pd.read_csv('table_BLeagueResult_2025.csv')
+        df_res.columns = [str(c).strip() for c in df_res.columns]
+        df_res['Date'] = pd.to_datetime(df_res['Date'])
+        finished = df_res.dropna(subset=['HomeScore', 'AwayScore'])
+        if not finished.empty:
+            period_str = f"{finished['Date'].min().strftime('%Y/%m/%d')} 〜 {finished['Date'].max().strftime('%Y/%m/%d')}"
+    except:
+        pass
+        
+    # 4つの値を返す
+    return df_t, df_p, df_l, period_str
 
 df_team, df_player, df_lineup, analysis_period = load_all_data()
 
