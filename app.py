@@ -183,3 +183,28 @@ with tab2:
     fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
     
     st.plotly_chart(fig_l, use_container_width=True)
+    
+    # --- 【修正2】グラフ描画の直後に以下の「表」コードを追加 ---
+    st.plotly_chart(fig_l, use_container_width=True)
+
+    # 該当チームのラインナップ表を復活
+    st.write(f"### {sel_team_name} ラインナップ詳細")
+    
+    # 注目選手が選択されている場合はその選手を含むもの、そうでない場合はチーム全員を表示
+    if target_p_id:
+        df_table = df_plot[df_plot['DisplayGroup'] == "★注目選手含む"].copy()
+    else:
+        df_table = df_plot[df_plot['TeamID'] == target_team_id].copy()
+
+    if not df_table.empty:
+        # 表用にデータを整形
+        output_l = df_table[['UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']].sort_values('TotalApps_L', ascending=False)
+        output_l.columns = ['ユニット構成', '合計プレイ数', '攻撃評価', '守備評価']
+        
+        st.dataframe(
+            output_l.style.format({'攻撃評価': '{:.1f}', '守備評価': '{:.1f}'}),
+            width="stretch",
+            hide_index=True
+        )
+    else:
+        st.warning("該当するデータがありません。")
