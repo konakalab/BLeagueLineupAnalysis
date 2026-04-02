@@ -162,7 +162,6 @@ with tab2:
         if sub.empty: continue
         
         # ツールチップを表示するかどうかの判定
-        # 「その他」の場合は 'skip'（反応しない）、それ以外（自チーム・注目選手）は 'all'（表示）
         hover_setting = "all" if cfg["name"] != "その他" else "skip"
         
         fig_l.add_trace(go.Scattergl(
@@ -171,14 +170,22 @@ with tab2:
             mode='markers',
             name=cfg["name"],
             text=sub['UnitNames'],
-            hoverinfo=hover_setting,  # ← ここでツールチップの有無を制御
+            # 【新規追加】hovertemplateで使うためのカスタムデータをセット
+            customdata=sub['TotalApps_L'], 
+            hoverinfo=hover_setting,
             marker=dict(
                 size=np.sqrt(sub['TotalApps_L'] + 1) * 0.7, 
                 color=cfg["color"],
                 opacity=cfg["opacity"],
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
             ),
-            hovertemplate="<b>%{text}</b><br>攻撃: %{x}<br>守備: %{y}<extra></extra>" if hover_setting == "all" else None
+            # 【修正】hovertemplateに「プレイ数」の行を追加
+            hovertemplate=(
+                "<b>%{text}</b><br>" +
+                "合計プレイ数: %{customdata}回  " + # customdataから取得
+                "攻撃評価: %{x}  " +
+                "守備評価: %{y}<extra></extra>"
+            ) if hover_setting == "all" else None
         ))
 
     fig_l.update_layout(
