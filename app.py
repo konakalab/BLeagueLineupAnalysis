@@ -89,4 +89,30 @@ with tab1:
         display_df['HensatiDEF'] = display_df['HensatiDEF'].round(1)
         display_df.columns = ['背番号', '選手名', '合計プレイ数', '攻撃プレイ数', '守備プレイ数', '攻撃偏差値', '守備偏差値']
         display_df = display_df.sort_values('合計プレイ数', ascending=False)
-        st.dataframe(display_df, use_container_width=True,
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+    else:
+        st.warning("選手データが見つかりませんでした。")
+
+with tab2:
+    st.subheader("最強ラインナップ (Rating順)")
+    team_lineups = df_lineup[df_lineup['TeamID'] == team_id].copy()
+    if not team_lineups.empty:
+        # Rating順にソート
+        top_lineups = team_lineups.sort_values('RatingOFF', ascending=False).head(10)
+        
+        def get_names(row):
+            names = []
+            for i in range(1, 6):
+                p_id = row[f'Lineup_{i}']
+                p_name_list = df_player[df_player['PlayerID'] == p_id]['PlayerNameJ'].values
+                names.append(p_name_list[0] if len(p_name_list) > 0 else f"ID:{p_id}")
+            return " / ".join(names)
+        
+        top_lineups['選手構成'] = top_lineups.apply(get_names, axis=1)
+        
+        # 表示用整理
+        show_lineups = top_lineups[['選手構成', 'OFFApps', 'RatingOFF', 'HensatiOFF']].copy()
+        show_lineups.columns = ['ユニット構成', '攻撃プレイ数', 'Rating', '偏差値']
+        st.table(show_lineups)
+    else:
+        st.info("ラインナップデータがありません。")
