@@ -355,14 +355,45 @@ with tab2:
                     annotation_position="bottom right"
                 )
                 
+    # --- タイトル文字列の動的作成 ---
+    if target_p_id:
+        # 選手が選択されている場合
+        l_title_text = (
+            f"<b>{sel_team_name}</b> ラインナップ分析 (注目選手: <b>{sel_p}</b>)<br>"
+            f"<span style='font-size:12px; color:gray;'>期間: {analysis_period}</span><br>"
+            f"<span style='font-size:12px; color:gray;'>点サイズ: 合計プレイ数 / 水色破線: {sel_p}の平均値</span>"
+        )
+    else:
+        # 「指定なし」の場合
+        l_title_text = (
+            f"<b>{sel_team_name}</b> ラインナップ分析<br>"
+            f"<span style='font-size:12px; color:gray;'>期間: {analysis_period}</span><br>"
+            f"<span style='font-size:12px; color:gray;'>点サイズ: 合計プレイ数 / 赤ドット: 自チーム構成</span>"
+        )
+                
     # --- グラフ全体のレイアウト設定 ---
     fig_l.update_layout(
+        title={
+            'text': l_title_text,
+            'x': 0.5,
+            'y': 0.98,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
+        # 3行タイトルに合わせて t=110 以上を確保
+        margin=dict(l=20, r=20, t=110, b=100), 
+        
+        xaxis=dict(
+            range=[-30, 30], title="攻撃評価", gridcolor='lightgray',
+            showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"
+        ),
+        yaxis=dict(
+            range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1,
+            showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"
+        ),
+        height=750,
+        plot_bgcolor='white', 
         hovermode='closest',
-        xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='lightgray'),
-        yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1),
-        height=700, 
-        margin=dict(l=20, r=20, t=20, b=100), # 下側の余白（b）を少し広げます
-        plot_bgcolor='white',
 
         # --- 【追加】凡例の設定（グラフ下部・中央） ---
         legend=dict(
