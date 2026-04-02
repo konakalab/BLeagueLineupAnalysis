@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go  # ← これが抜けていたためエラーになっています
 import numpy as np
 
 # 1. ページ全体の基本設定
