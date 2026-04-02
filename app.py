@@ -151,8 +151,8 @@ with tab2:
     # 描画設定（順序、色、透明度）
     plot_configs = [
         {"name": "その他", "color": "#E5ECF6", "opacity": 0.3},
-        {"name": sel_team_name, "color": "#EF553B", "opacity": 0.8},
-        {"name": "★注目選手含む", "color": "#19D3F3", "opacity": 1.0}
+        {"name": sel_team_name, "color": "#EF553B", "opacity": 0.5},
+        {"name": "★注目選手含む", "color": "#19D3F3", "opacity": 0.75}
     ]
 
     for cfg in plot_configs:
@@ -166,7 +166,7 @@ with tab2:
             name=cfg["name"],
             text=sub['UnitNames'],
             marker=dict(
-                size=np.sqrt(sub['TotalApps_L'] + 1) * 0.5,
+                size=np.sqrt(sub['TotalApps_L'] + 1) * 1,
                 color=cfg["color"],
                 opacity=cfg["opacity"],
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
