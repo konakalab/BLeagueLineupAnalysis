@@ -142,7 +142,7 @@ with tab1:
         color_map = {sel_team_name: '#EF553B', 'その他': '#E5ECF6'}
         # 描画順を制御（自チームを最前面へ）
         df_all_p = df_all_p.sort_values('is_selected')
-        opacity_val = df_all_p['is_selected'].map({True: 1.0, False: 0.3})
+        opacity_val = df_all_p['is_selected'].map({True: 0.15, False: 0.3})
 
     # --- グラフ描画 ---
     fig_p = px.scatter(
