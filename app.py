@@ -73,25 +73,26 @@ with tab1:
         y='HensatiDEF',
         color='DisplayGroup',
         size='MarkerSize',
-        # --- 修正点1: グラフ上のテキスト表示を制御 ---
-        # グラフ上に常に背番号を出したい場合は残し、消したい場合は text=None にします
+        # グラフ上の数字表示は維持（textに指定したデータはデフォルトでホバーにも入る）
         text=df_all.apply(lambda r: str(r['PlayerNo']) if r['is_selected'] else "", axis=1),
-        
-        # --- 修正点2: Tooltipのタイトル（一番上に太字で出る名前） ---
         hover_name='PlayerNameJ',
-        
-        # --- 修正点3: Tooltipの中身のリスト ---
-        # True = 表示する、False = 表示しない、':.1f' = 小数点第1位まで表示
         hover_data={
-            'PlayerNo': True,      # 背番号をTooltipに追加
             'HensatiOFF': ':.1f', 
             'HensatiDEF': ':.1f', 
             'TotalApps': True, 
-            'DisplayGroup': False, # グループ名は不要なら隠す
-            'MarkerSize': False    # 計算用サイズも隠す
+            'PlayerNo': True,      # 「背番号」として表示
+            'text': False,         # ★ここを追加：自動で入る「text」の行を非表示にする
+            'DisplayGroup': False, 
+            'MarkerSize': False,
+            'is_selected': False
         },
         color_discrete_map={sel_team_name: '#EF553B', 'その他': '#E5ECF6'},
-        labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計出場数', 'PlayerNo': '背番号'},
+        labels={
+            'HensatiOFF': '攻撃評価', 
+            'HensatiDEF': '守備評価', 
+            'TotalApps': '合計出場数', 
+            'PlayerNo': '背番号'
+        },
         opacity=df_all['is_selected'].map({True: 1.0, False: 0.4})
     )
 
