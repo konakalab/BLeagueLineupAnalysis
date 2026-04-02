@@ -13,22 +13,21 @@ def load_data():
     df_lineup = pd.read_csv('table_lineups.csv')
     
     # 2025年の試合結果データのみを読み込む
-    df_results = pd.read_csv('BLeagueResult03.xlsx - 2025.csv')
-    
-    # 日付型に変換
-    df_results['Date'] = pd.to_datetime(df_results['Date'])
-    
-    # 【重要】スコア(HomeScore)が記入されている行だけを「分析対象」とする
-    # スコアが空(NaN)の試合はまだ行われていないため除外
-    target_games = df_results.dropna(subset=['HomeScore', 'AwayScore'])
-    
-    if not target_games.empty:
-        analysis_period = {
-            'start': target_games['Date'].min().strftime('%Y/%m/%d'),
-            'end': target_games['Date'].max().strftime('%Y/%m/%d')
-        }
-    else:
-        analysis_period = {'start': 'データなし', 'end': 'データなし'}
+    try:
+        df_results = pd.read_csv('BLeagueResult03.xlsx - 2025.csv')
+        # 日付型に変換
+        df_results['Date'] = pd.to_datetime(df_results['Date'])
+        # スコア(HomeScore)が記入されている行だけを「分析対象」とする
+        target_games = df_results.dropna(subset=['HomeScore', 'AwayScore'])
+        
+        if not target_games.empty:
+            start_date = target_games['Date'].min().strftime('%Y/%m/%d')
+            end_date = target_games['Date'].max().strftime('%Y/%m/%d')
+            analysis_period = f"{start_date} から {end_date}"
+        else:
+            analysis_period = "データ準備中"
+    except FileNotFoundError:
+        analysis_period = "試合結果ファイルが見つかりません"
     
     return df_team, df_player, df_lineup, analysis_period
 
@@ -49,26 +48,21 @@ st.title(f"🏀 {selected_team_name} 分析ダッシュボード")
 st.write(f"{selected_league} / {team_info['Division']}地区")
 
 # 分析対象期間の表示
-st.info(f"📅 分析対象期間：{analysis_period['start']} から {analysis_period['end']} まで")
+st.info(f"📅 分析対象：{analysis_period} まで")
 
 tab1, tab2 = st.tabs(["選手分析", "ラインナップ分析"])
 
 with tab1:
     st.subheader("選手別 偏差値分析 (攻撃 vs 守備)")
-    
     team_players = df_player[df_player['TeamID'] == team_id].copy()
     
     if not team_players.empty:
         team_players['TotalApps'] = team_players['OFFApps'] + team_players['DEFApps']
         
-        # 散布図
         fig = px.scatter(
-            team_players, 
-            x='HensatiOFF', 
-            y='HensatiDEF',
-            text='PlayerNo',
-            color='TotalApps',
-            labels={'HensatiOFF': '攻撃評価 (偏差値)', 'HensatiDEF': '守備評価 (偏差値)', 'TotalApps': '合計出場数'},
+            team_players, x='HensatiOFF', y='HensatiDEF',
+            text='PlayerNo', color='TotalApps',
+            labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計出場数'},
             hover_name='PlayerNameJ',
             hover_data={'PlayerNo': True, 'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 'TotalApps': True},
             color_continuous_scale='Viridis',
@@ -95,16 +89,4 @@ with tab1:
         display_df['HensatiDEF'] = display_df['HensatiDEF'].round(1)
         display_df.columns = ['背番号', '選手名', '合計プレイ数', '攻撃プレイ数', '守備プレイ数', '攻撃偏差値', '守備偏差値']
         display_df = display_df.sort_values('合計プレイ数', ascending=False)
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-with tab2:
-    st.subheader("最強ラインナップ (Rating順)")
-    team_lineups = df_lineup[df_lineup['TeamID'] == team_id].copy()
-    if not team_lineups.empty:
-        top_lineups = team_lineups.sort_values('HensatiOFF', ascending=False).head(5)
-        def get_names(row):
-            names = []
-            for i in range(1, 6):
-                p_id = row[f'Lineup_{i}']
-                p_name = df_player[df_player['PlayerID'] == p_id]['PlayerNameJ'].values
-                names.append(p_name[0] if len(p_name)
+        st.dataframe(display_df, use_container_width=True,
