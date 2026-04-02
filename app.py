@@ -32,10 +32,11 @@ def load_all_data():
     # --- ラインナップ内の選手名を背番号順に並び替えて結合する関数 ---
     def get_sorted_unit_names(row):
         p_ids = []
-        for i in range(1, 6
-            pid = int(row[f'Lineup_{i}'])
-            if pid != 0:
-                p_ids.append(pid)
+        # ここで 1番目から5番目の PlayerID をリストに格納
+        for i in range(1, 6):
+            val = row[f'Lineup_{i}']
+            if pd.notna(val) and int(val) != 0:
+                p_ids.append(int(val))
         
         # (背番号, 名前) のタプルリストを作成
         p_info = []
@@ -47,7 +48,7 @@ def load_all_data():
         # 背番号(x[0])で昇順ソート
         p_info.sort(key=lambda x: x[0])
         
-        # 名前だけを結合
+        # 名前だけを結合（ここが閉じ括弧不足になりやすい箇所です）
         return " / ".join([x[1] for x in p_info])
 
     # UnitNames の作成に適用
