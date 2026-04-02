@@ -204,10 +204,10 @@ with tab1:
         # 4. 最後に表示用の日本語名に一括置換
         output_p.columns = ['チーム', '背番号', '選手名', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
         
-        # 5. 貢献量でソート
-        output_p = output_p.sort_values('貢献量', ascending=False)
+        # --- ここを修正： '貢献量' から '合計プレイ数' へ ---
+        output_p = output_p.sort_values('合計プレイ数', ascending=False)
         
-        st.caption("※ リーグ全体の全選手を「貢献量」順に表示しています。貢献量 = (攻撃評価 + 守備評価) × プレイ数")
+        st.caption("※ リーグ全体の全選手を「合計プレイ数」順に表示しています。貢献量 = (攻撃評価 + 守備評価) × プレイ数")
     else:
         # 特定チームモード
         df_tp = df_all_p[df_all_p['is_selected']].copy()
@@ -222,8 +222,8 @@ with tab1:
         output_p.columns = ['背番号', '選手名', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
         
         # 貢献量でソート
-        output_p = output_p.sort_values('貢献量', ascending=False)
-
+        output_p = output_p.sort_values('合計プレイ数', ascending=False)
+        
     # 共通のデータフレーム表示
     st.dataframe(
         output_p.style.format({
