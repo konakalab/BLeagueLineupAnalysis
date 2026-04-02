@@ -166,7 +166,7 @@ with tab1:
         title={
             'text': (
                 f"<b>{sel_team_name}</b> 選手評価分布<br>"
-                f"<span style='font-size:12px; color:gray;'>期間: {analysis_period}</span><br>"
+                f"<span style='font-size:12px; color:gray;'>期間: {analysis_period}</span> "
                 f"<span style='font-size:12px; color:gray;'>点サイズ: 合計プレイ数 / ラベル: 背番号</span>"
             ),
             'x': 0.5,
