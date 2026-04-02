@@ -150,9 +150,9 @@ with tab2:
     
     # 【修正箇所】透明度とサイズ係数の調整
     plot_configs = [
-        {"name": "その他", "color": "#E5ECF6", "opacity": 0.15},      # 透明度を上げ（薄く）
-        {"name": sel_team_name, "color": "#EF553B", "opacity": 0.4}, # 自チームを少し薄く
-        {"name": "★注目選手含む", "color": "#19D3F3", "opacity": 0.6}  # 注目選手も少しマイルドに
+        {"name": "その他", "color": "#E5ECF6", "opacity": 0.2},      # 透明度を上げ（薄く）
+        {"name": sel_team_name, "color": "#EF553B", "opacity": 0.5}, # 自チームを少し薄く
+        {"name": "★注目選手含む", "color": "#19D3F3", "opacity": 0.75}  # 注目選手も少しマイルドに
     ]
 
     for cfg in plot_configs:
@@ -166,8 +166,7 @@ with tab2:
             name=cfg["name"],
             text=sub['UnitNames'],
             marker=dict(
-                # 【修正箇所】サイズ係数を 1 -> 0.7 に縮小
-                size=np.sqrt(sub['TotalApps_L'] + 1) * 0.7, 
+                size=np.sqrt(sub['TotalApps_L'] + 1) * 1.0, 
                 color=cfg["color"],
                 opacity=cfg["opacity"],
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
