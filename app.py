@@ -79,7 +79,7 @@ sel_team_name = st.sidebar.selectbox("チーム選択", list_teams)
 target_team_id = int(teams_sorted[teams_sorted['Team'] == sel_team_name]['TeamID'].iloc[0])
 
 # 4. メインタイトル
-st.title(f"🏀 {sel_team_name} 分析ダッシュボード")
+st.title(f"🏀 {sel_team_name} 分析ダッシュボーあああ")
 st.info(f"📅 分析対象期間：{analysis_period}")
 
 tab1, tab2 = st.tabs(["選手分析", "ラインナップ分析"])
