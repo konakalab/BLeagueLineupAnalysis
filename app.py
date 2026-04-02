@@ -56,12 +56,17 @@ with tab1:
     # 全選手データの準備
     df_all = df_player.copy()
     df_all['TotalApps'] = df_all['OFFApps'] + df_all['DEFApps']
-    # 半径を平方根に比例させるための計算（サイズ調整用）
+    # 半径を平方根に比例させる（サイズ調整）
     df_all['MarkerSize'] = np.sqrt(df_all['TotalApps'] + 1)
     
-    # 選択チーム判定フラグ
+    # 1. 選択チーム判定フラグ
     df_all['is_selected'] = df_all['TeamID'] == target_team_id
     df_all['DisplayGroup'] = df_all['is_selected'].map({True: sel_team_name, False: 'その他'})
+    
+    # 2. グラフ上に表示するラベル用の列を「事前に」作成（予約語エラー回避のため列名をLabelにする）
+    df_all['Label'] = df_all.apply(
+        lambda r: str(r['PlayerNo']) if r['is_selected'] else "", axis=1
+    )
     
     # 描画順：その他を先に描いて、選択チームを上に重ねる
     df_all = df_all.sort_values('is_selected')
@@ -73,18 +78,16 @@ with tab1:
         y='HensatiDEF',
         color='DisplayGroup',
         size='MarkerSize',
-        # グラフ上の数字表示は維持（textに指定したデータはデフォルトでホバーにも入る）
-        text=df_all.apply(lambda r: str(r['PlayerNo']) if r['is_selected'] else "", axis=1),
+        text='Label', # 事前に作った列名を指定
         hover_name='PlayerNameJ',
         hover_data={
             'HensatiOFF': ':.1f', 
             'HensatiDEF': ':.1f', 
             'TotalApps': True, 
-            'PlayerNo': True,      # 「背番号」として表示
-            'text': False,         # ★ここを追加：自動で入る「text」の行を非表示にする
+            'PlayerNo': True, 
+            'Label': False,       # グラフ上の文字と同じ内容なのでTooltipでは隠す
             'DisplayGroup': False, 
-            'MarkerSize': False,
-            'is_selected': False
+            'MarkerSize': False
         },
         color_discrete_map={sel_team_name: '#EF553B', 'その他': '#E5ECF6'},
         labels={
@@ -98,11 +101,10 @@ with tab1:
 
     # 軸の設定（-30から30）と点線
     fig.update_layout(
-        xaxis=dict(range=[-30, 30], title="攻撃評価", scaleanchor="y", scaleratio=1),
-        yaxis=dict(range=[-30, 30], title="守備評価"),
+        xaxis=dict(range=[-30, 30], title="攻撃評価 (偏差値)", scaleanchor="y", scaleratio=1),
+        yaxis=dict(range=[-30, 30], title="守備評価 (偏差値)"),
         width=800, height=800,
-        legend_title_text="表示グループ",
-        showlegend=True
+        legend_title_text="表示グループ"
     )
     fig.update_traces(textposition='top center')
     fig.add_hline(y=0, line_dash="dot", line_color="gray")
@@ -110,8 +112,8 @@ with tab1:
     
     st.plotly_chart(fig, use_container_width=True)
     
-    # 選手一覧表（選択チームのみ）
-    st.write(f"### {sel_team_name} 選手評価値一覧")
+    # 選手一覧表
+    st.write(f"### {sel_team_name} 選手スタッツ一覧")
     df_tp = df_all[df_all['is_selected']].copy()
     disp_df = df_tp[['PlayerNo', 'PlayerNameJ', 'TotalApps', 'OFFApps', 'DEFApps', 'HensatiOFF', 'HensatiDEF']].copy()
     disp_df['HensatiOFF'] = disp_df['HensatiOFF'].round(1)
@@ -119,7 +121,6 @@ with tab1:
     disp_df.columns = ['背番号', '選手名', '合計プレイ数', '攻撃プレイ数', '守備プレイ数', '攻撃偏差値', '守備偏差値']
     
     st.dataframe(disp_df.sort_values('合計プレイ数', ascending=False), use_container_width=True, hide_index=True)
-
 # --- タブ2: ラインナップ分析 ---
 with tab2:
     st.subheader("最強ラインナップ (偏差値順)")
