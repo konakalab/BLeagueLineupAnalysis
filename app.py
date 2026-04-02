@@ -13,38 +13,29 @@ def load_all_data():
     df_p = pd.read_csv('table_players.csv')
     df_l = pd.read_csv('table_lineups.csv')
     
-    # 基本的なクリーンアップと数値化
     for df in [df_t, df_p, df_l]:
         df.columns = [str(c).strip() for c in df.columns]
-        numeric_cols = ['TeamID', 'PlayerID', 'Order', 'PlayerNo', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'OFFApps', 'DEFApps']
-        for col in numeric_cols:
+        # ID系・カウント系を整数に固定
+        num_cols = ['TeamID', 'PlayerID', 'Order', 'PlayerNo', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'OFFApps', 'DEFApps']
+        for col in num_cols:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
-        
-        # 偏差値・評価値は事前に丸めておく（描画時の負荷軽減）
-        float_cols = ['HensatiOFF', 'HensatiDEF', 'RatingOFF']
-        for col in float_cols:
+        # 評価値を小数点1桁に固定
+        for col in ['HensatiOFF', 'HensatiDEF', 'RatingOFF']:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0).round(1)
 
-    # 【高速化のキモ1】選手IDから名前を引く辞書を事前に作成
-    player_id_to_name = dict(zip(df_p['PlayerID'], df_p['PlayerNameJ']))
-
-    # 【高速化のキモ2】ラインナップごとに「ユニット構成名」を事前に作成
-    def fast_get_names(row):
-        return " / ".join([player_id_to_name.get(int(row[f'Lineup_{i}']), "Unknown") for i in range(1, 6)])
+    # 【高速化】名前引き辞書を一度だけ作成
+    p_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNameJ']))
     
-    df_l['UnitNames'] = df_l.apply(fast_get_names, axis=1)
+    # 【高速化】全ユニット名をここで連結（applyを一度きりにする）
+    df_l['UnitNames'] = df_l.apply(lambda r: " / ".join([p_dict.get(int(r[f'Lineup_{i}']), "??") for i in range(1,6)]), axis=1)
     
-    # 【高速化のキモ3】判定用にPlayerIDを集合（set）化しておく
+    # 【高速化】判定用の集合(set)を事前に作成
     df_l['LineupSet'] = df_l.apply(lambda r: {int(r[f'Lineup_{i}']) for i in range(1, 6)}, axis=1)
     
-    # 合計プレイ数とサイズも計算済みにしておく
     df_l['TotalApps_L'] = df_l['OFFApps'] + df_l['DEFApps']
-    df_l['MarkerSize'] = np.sqrt(df_l['TotalApps_L'] + 1)
-
-    # 期間取得は省略（既存通り）
-    return df_t, df_p, df_l, "分析期間"
+    return df_t, df_p, df_l
 
 df_team, df_player, df_lineup, analysis_period = load_all_data()
 
@@ -123,44 +114,64 @@ with tab1:
         output_p.columns = ['背番号', '選手名', '合計プレイ数', '攻撃評価', '守備評価']
         st.dataframe(output_p.style.format({'攻撃評価': '{:.1f}', '守備評価': '{:.1f}'}), width="stretch", hide_index=True)
 
-# --- タブ2: ラインナップ分析（高速描画版） ---
 with tab2:
     st.subheader("ラインナップ別 評価値分布")
     
-    # 強調表示する選手を選択
+    # 注目選手の選択処理
     team_p = df_player[df_player['TeamID'] == target_team_id].sort_values('PlayerNo')
     p_options = ["指定なし"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_p.iterrows()]
-    sel_p = st.selectbox("強調表示する選手を選択", p_options, key="p_selector")
+    sel_p = st.selectbox("強調表示する選手を選択", p_options)
     
     target_p_id = None
     if sel_p != "指定なし":
-        sel_p_no = int(sel_p.split()[0])
-        target_p_id = int(team_p[team_p['PlayerNo'] == sel_p_no]['PlayerID'].iloc[0])
+        target_p_id = int(team_p[team_p['PlayerNo'] == int(sel_p.split()[0])]['PlayerID'].iloc[0])
 
-    # 【高速化のキモ4】applyを最小限に。ベクトル演算またはシンプルな比較を使用
-    df_plot = df_lineup.copy()
+    # 判定用の一時データフレーム作成
+    df_plot = df_lineup[['TeamID', 'HensatiOFF', 'HensatiDEF', 'TotalApps_L', 'UnitNames', 'LineupSet']].copy()
     
-    if target_p_id:
-        # 集合演算で「含まれるか」を高速判定
-        is_target_included = df_plot['LineupSet'].apply(lambda s: target_p_id in s)
-        is_my_team = (df_plot['TeamID'] == target_team_id) & (~is_target_included)
+    # 表示グループの高速判定
+    def get_group(row):
+        if target_p_id and target_p_id in row['LineupSet']:
+            return "★注目選手含む"
+        return sel_team_name if row['TeamID'] == target_team_id else "その他"
+
+    df_plot['DisplayGroup'] = df_plot.apply(get_group, axis=1)
+    
+    # 【最重要】go.Scattergl を使った高速レンダリング
+    fig_l = go.Figure()
+    
+    # 描画設定（順序、色、透明度）
+    plot_configs = [
+        {"name": "その他", "color": "#E5ECF6", "opacity": 0.3},
+        {"name": sel_team_name, "color": "#EF553B", "opacity": 0.8},
+        {"name": "★注目選手含む", "color": "#19D3F3", "opacity": 1.0}
+    ]
+
+    for cfg in plot_configs:
+        sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]]
+        if sub.empty: continue
         
-        df_plot['DisplayGroup'] = "その他"
-        df_plot.loc[is_my_team, 'DisplayGroup'] = sel_team_name
-        df_plot.loc[is_target_included, 'DisplayGroup'] = "★注目選手含む"
-    else:
-        df_plot['DisplayGroup'] = np.where(df_plot['TeamID'] == target_team_id, sel_team_name, "その他")
+        fig_l.add_trace(go.Scattergl(
+            x=sub['HensatiOFF'],
+            y=sub['HensatiDEF'],
+            mode='markers',
+            name=cfg["name"],
+            text=sub['UnitNames'],
+            marker=dict(
+                size=np.sqrt(sub['TotalApps_L'] + 1) * 2,
+                color=cfg["color"],
+                opacity=cfg["opacity"],
+                line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
+            ),
+            hovertemplate="<b>%{text}</b><br>攻撃: %{x}<br>守備: %{y}<extra></extra>"
+        ))
 
-    # 重なり順のソート
-    df_plot = df_plot.sort_values('DisplayGroup', key=lambda x: x.map({"その他":0, sel_team_name:1, "★注目選手含む":2}))
-
-    # 描画（事前作成した UnitNames を hover_name に指定するだけ！）
-    fig_l = px.scatter(
-        df_plot, x='HensatiOFF', y='HensatiDEF', color='DisplayGroup', size='MarkerSize',
-        hover_name='UnitNames',  # ここでapplyを呼ぶのをやめたのが最大の高速化
-        hover_data={'HensatiOFF': True, 'HensatiDEF': True, 'TotalApps_L': True, 'DisplayGroup': False, 'MarkerSize': False},
-        color_discrete_map={sel_team_name: '#EF553B', "★注目選手含む": '#19D3F3', 'その他': '#E5ECF6'},
-        opacity=df_plot['DisplayGroup'].map(lambda x: 1.0 if x != "その他" else 0.3)
+    fig_l.update_layout(
+        xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='white'),
+        yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='white', scaleanchor="x", scaleratio=1),
+        height=700, margin=dict(l=20, r=20, t=20, b=20)
     )
-    # ... update_layoutなどは省略 ...
-    st.plotly_chart(fig_l, width="stretch")
+    fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
+    fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
+    
+    st.plotly_chart(fig_l, use_container_width=True)
