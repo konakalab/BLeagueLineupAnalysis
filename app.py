@@ -161,19 +161,24 @@ with tab2:
         sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]]
         if sub.empty: continue
         
+        # ツールチップを表示するかどうかの判定
+        # 「その他」の場合は 'skip'（反応しない）、それ以外（自チーム・注目選手）は 'all'（表示）
+        hover_setting = "all" if cfg["name"] != "その他" else "skip"
+        
         fig_l.add_trace(go.Scattergl(
             x=sub['HensatiOFF'],
             y=sub['HensatiDEF'],
             mode='markers',
             name=cfg["name"],
             text=sub['UnitNames'],
+            hoverinfo=hover_setting,  # ← ここでツールチップの有無を制御
             marker=dict(
-                size=np.sqrt(sub['TotalApps_L'] + 1) * 1.2, 
+                size=np.sqrt(sub['TotalApps_L'] + 1) * 0.7, 
                 color=cfg["color"],
                 opacity=cfg["opacity"],
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
             ),
-            hovertemplate="<b>%{text}</b><br>攻撃: %{x}<br>守備: %{y}<extra></extra>"
+            hovertemplate="<b>%{text}</b><br>攻撃: %{x}<br>守備: %{y}<extra></extra>" if hover_setting == "all" else None
         ))
 
     fig_l.update_layout(
