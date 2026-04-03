@@ -597,10 +597,19 @@ with tab2:
                 annotation_position="bottom right"
             )
 
+    # 注目選手が選択されている場合、タイトルに追記する
+    p_display_name = f"（{sel_p} 含む）" if not is_league_mode and sel_p != "指定なし" else ""
+
     fig_l.update_layout(
-        title={'text': f"<b>{sel_team_name}</b> ラインナップ分析<br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 'x': 0.5, 'y': 0.98, 'xanchor': 'center', 'yanchor': 'top'},
-        margin=dict(l=20, r=20, t=110, b=100), xaxis=dict(range=[-30, 30], title="攻撃評価"), yaxis=dict(range=[-30, 30], title="守備評価", scaleanchor="x", scaleratio=1),
-        height=750, plot_bgcolor='white', hovermode='closest', legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
+        title={
+            'text': f"<b>{sel_team_name}</b> ラインナップ分析 {p_display_name}<br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 
+            'x': 0.5, 'y': 0.98, 'xanchor': 'center', 'yanchor': 'top'
+        },
+        margin=dict(l=20, r=20, t=110, b=100), 
+        xaxis=dict(range=[-30, 30], title="攻撃評価"), 
+        yaxis=dict(range=[-30, 30], title="守備評価", scaleanchor="x", scaleratio=1),
+        height=750, plot_bgcolor='white', hovermode='closest', 
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
 
     # --- 1. 全体平均の基準線（0,0の十字） ---
