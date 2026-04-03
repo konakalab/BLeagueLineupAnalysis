@@ -194,7 +194,7 @@ def draw_shot_chart(player_shots, player_name):
         },
         width=1200, height=640, 
         xaxis=dict(range=[-0.5, 14.5], visible=False, fixedrange=True, scaleanchor="y", scaleratio=1),
-        yaxis=dict(range=[-7.8, 7.8], visible=False, fixedrange=True),
+        yaxis=dict(range=[-7.5, 7.5], visible=False, fixedrange=True),
         margin=dict(l=1, r=1, t=1, b=1), 
         plot_bgcolor='white',
         dragmode=False,
@@ -347,7 +347,7 @@ with tab1:
 
                 # ショットチャート表示 (ここで関数の返り値を変数に入れる)
                 fig_shot = draw_shot_chart(df_own, chart_title)
-                st.plotly_chart(fig_shot, use_container_width=True, config={'displayModeBar': False})
+                st.plotly_chart(fig_shot, use_container_width=False, config={'displayModeBar': False})
                 
             else:
                 st.warning("該当するショットデータが見つかりませんでした。")
