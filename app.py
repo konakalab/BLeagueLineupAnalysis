@@ -195,7 +195,7 @@ def draw_shot_chart(player_shots, player_name):
         width=1200, height=640, 
         xaxis=dict(range=[-0.5, 14.5], visible=False, fixedrange=True, scaleanchor="y", scaleratio=1),
         yaxis=dict(range=[-7.8, 7.8], visible=False, fixedrange=True),
-        margin=dict(l=5, r=5, t=10, b=5), 
+        margin=dict(l=5, r=5, t=1, b=1), 
         plot_bgcolor='white',
         dragmode=False,
         hovermode='closest'
