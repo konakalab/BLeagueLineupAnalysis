@@ -256,6 +256,8 @@ with tab1:
 
 
 with tab2:
+    target_p_id = None  # ← この行を追加（特定チーム時の選手絞り込み用）
+    
     # --- 1. データの準備 ---
     n_league_lineups = 50
     df_plot = df_lineup[['TeamID', 'HensatiOFF', 'HensatiDEF', 'TotalApps_L', 'UnitNames', 'LineupSet']].copy()
