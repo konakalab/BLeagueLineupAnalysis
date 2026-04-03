@@ -300,7 +300,7 @@ with tab1:
         color_map = {sel_team_name: '#EF553B', 'その他': '#E5ECF6'}
         df_all_p = df_all_p.sort_values('is_selected')
         # 選択チームを前面に出すための不透明度設定
-        opacity_val = 0.5 
+        opacity_val = 0.4 
 
     # 2. 選手評価散布図の作成
     fig_p = px.scatter(
