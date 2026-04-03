@@ -290,7 +290,7 @@ with tab2:
         use_container_width=True,
         hide_index=True,
         on_select="rerun",       # 選択時に再実行
-        selection_mode="single_row" # 1行選択
+        selection_mode=["single_row"] # 1行選択
     )
 
     # 選択されたユニット名を特定
