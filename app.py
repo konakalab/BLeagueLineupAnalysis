@@ -286,76 +286,71 @@ with tab1:
     st.plotly_chart(fig_p, use_container_width=True)
 
     # --- Tab 1 内: ショット分析セクション ---
-if not is_league_mode:
-    st.divider()
-    st.write(f"## 🏀 {sel_team_name} ショット分析")
+    if not is_league_mode:
+        st.divider()
+        st.write(f"## 🏀 {sel_team_name} ショット分析")
+        
+        # 1. 選手選択
+        team_players = df_all_p[df_all_p['TeamID'] == target_team_id].sort_values('PlayerNo')
+        p_options = ["チーム全体"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_players.iterrows()]
+        sel_p_shot = st.selectbox("分析対象の選手を選択", p_options)
     
-    # 1. 選手選択
-    team_players = df_all_p[df_all_p['TeamID'] == target_team_id].sort_values('PlayerNo')
-    p_options = ["チーム全体"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_players.iterrows()]
-    sel_p_shot = st.selectbox("分析対象の選手を選択", p_options)
-
-    if sel_p_shot != "チーム全体":
-        # 2. 分析モードの切り替え
-        analysis_mode = st.radio(
-            "分析内容",
-            ["① 選手個人のショット", "② オンコート時の自チーム全体", "③ オンコート時の相手チーム"],
-            horizontal=True
-        )
-        
-        p_name_only = sel_p_shot.split(" ", 1)[1]
-        selected_player_id = int(team_players[team_players['PlayerNameJ'] == p_name_only]['PlayerID'].iloc[0])
-        
-        # --- オンコート判定ロジック ---
-        # カラム名に 'PlayerID_' が含まれるものをすべて抽出 (Home/Away両方)
-        on_court_cols = [c for c in df_shot.columns if 'PlayerID_' in c and c != 'PlayerID']
-        
-        # 💡 高速なオンコート判定 (いずれかのカラムに ID が含まれる行を抽出)
-        is_on_court = (df_shot[on_court_cols] == selected_player_id).any(axis=1)
-        df_on_court_all = df_shot[is_on_court].copy()
-
-        if analysis_mode == "① 選手個人のショット":
-            # 本人が放ったシュートのみ
-            df_display = df_shot[df_shot['PlayerID'] == selected_player_id].copy()
-            chart_title = f"{p_name_only} (個人シュート)"
-            target_cmid = 1.0
-            
-        elif analysis_mode == "② オンコート時の自チーム全体":
-            # 本人がコートにいる時の、自チームの全シュート
-            df_display = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
-            chart_title = f"{p_name_only} 出場時 (自チーム全体)"
-            target_cmid = 1.0
-            
-        elif analysis_mode == "③ オンコート時の相手チーム":
-            # 本人がコートにいる時の、相手チームの全シュート
-            df_display = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
-            chart_title = f"{p_name_only} 出場時 (相手の被シュート)"
-            target_cmid = 0.9 # 被シュートは効率を低く抑えたいので基準を厳しめに設定
-
-    else:
-        # チーム全体モード
-        df_display = df_shot[df_shot['TeamID'] == target_team_id].copy()
-        chart_title = f"{sel_team_name} (チーム全体)"
+        # --- 修正ポイント：analysis_mode の初期化 ---
+        analysis_mode = "チーム全体" 
         target_cmid = 1.0
-
-    # --- 3. 描画処理 ---
-    if not df_display.empty:
-        # ショットチャートの呼び出し
-        fig_shot = draw_shot_chart(df_display, chart_title)
-        
-        # モードに応じた期待値の基準色(cmid)と範囲を最終調整
-        fig_shot.update_traces(
-            marker=dict(
-                cmid=target_cmid,
-                cmin=0.0,
-                cmax=1.8 if analysis_mode == "① 選手個人のショット" else 1.5
+    
+        if sel_p_shot != "チーム全体":
+            # 2. 分析モードの切り替え
+            analysis_mode = st.radio(
+                "分析内容",
+                ["① 選手個人のショット", "② オンコート時の自チーム全体", "③ オンコート時の相手チーム"],
+                horizontal=True
             )
-        )
-        
-        # 縦幅を優先し、ズームを固定して表示
-        st.plotly_chart(fig_shot, use_container_width=False, config={'displayModeBar': False})
-    else:
-        st.warning("該当するショットデータが見つかりませんでした。")
+            
+            p_name_only = sel_p_shot.split(" ", 1)[1]
+            selected_player_id = int(team_players[team_players['PlayerNameJ'] == p_name_only]['PlayerID'].iloc[0])
+            
+            # --- オンコート判定ロジック ---
+            on_court_cols = [c for c in df_shot.columns if 'PlayerID_' in c and c != 'PlayerID']
+            is_on_court = (df_shot[on_court_cols] == selected_player_id).any(axis=1)
+            df_on_court_all = df_shot[is_on_court].copy()
+    
+            if analysis_mode == "① 選手個人のショット":
+                df_display = df_shot[df_shot['PlayerID'] == selected_player_id].copy()
+                chart_title = f"{p_name_only} (個人シュート)"
+                
+            elif analysis_mode == "② オンコート時の自チーム全体":
+                df_display = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
+                chart_title = f"{p_name_only} 出場時 (自チーム全体)"
+                
+            elif analysis_mode == "③ オンコート時の相手チーム":
+                df_display = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
+                chart_title = f"{p_name_only} 出場時 (相手の被シュート)"
+                target_cmid = 0.9 
+    
+        else:
+            # チーム全体モード
+            df_display = df_shot[df_shot['TeamID'] == target_team_id].copy()
+            chart_title = f"{sel_team_name} (チーム全体)"
+    
+        # --- 3. 描画処理 ---
+        if not df_display.empty:
+            fig_shot = draw_shot_chart(df_display, chart_title)
+            
+            # 修正：analysis_mode が存在しない場合を考慮した三項演算子
+            current_cmax = 1.8 if analysis_mode == "① 選手個人のショット" else 1.5
+            
+            fig_shot.update_traces(
+                marker=dict(
+                    cmid=target_cmid,
+                    cmin=0.0,
+                    cmax=current_cmax
+                )
+            )
+            
+            st.plotly_chart(fig_shot, use_container_width=False, config={'displayModeBar': False})
+        else:
+            st.warning("該当するショットデータが見つかりませんでした。")
 
     # 4. 選手データ一覧テーブル
     st.divider()
