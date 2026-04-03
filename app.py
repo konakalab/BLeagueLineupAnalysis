@@ -207,6 +207,7 @@ with tab1:
         # チーム名をマッピング
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
         output_p['チーム'] = output_p['TeamID'].map(team_dict)
+        output_p = output_p.dropna(subset=['チーム'])
         
         # 2. 貢献量の計算
         output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
