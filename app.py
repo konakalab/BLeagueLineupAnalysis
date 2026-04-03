@@ -71,14 +71,11 @@ def load_all_data():
     
 def draw_shot_chart(player_shots, player_name):
     """
-    MATLABコードの向きを完全に維持したショットチャート
-    X軸: エンドライン(0) ～ センターライン(14) ～ 28
-    Y軸: サイドライン(-7.5) ～ サイドライン(7.5)
+    MATLABコードの規格と向きを完全に再現したショットチャート
     """
     player_shots = player_shots.copy()
     player_shots['Result'] = player_shots['ShotPoints'].apply(lambda x: '成功 (Made)' if x > 0 else '失敗 (Missed)')
     
-    # プロット作成 (MATLABと同じく x=RelativeShotX, y=RelativeShotY)
     fig = px.scatter(
         player_shots, 
         x='RelativeShotX', 
@@ -93,40 +90,57 @@ def draw_shot_chart(player_shots, player_name):
 
     line_color = "#333333"
     
-    # 1. バックボード (MATLAB: x=1.2, y=[-0.9, 0.9])
+    # --- FIBA / MATLAB 規格ライン ---
+    
+    # 1. バックボード (x=1.2, y=[-0.9, 0.9])
     fig.add_shape(type="line", x0=1.2, y0=-0.9, x1=1.2, y1=0.9, line=dict(color="black", width=3))
     
-    # 2. リング (MATLAB: 中心x=1.575, 半径0.225)
+    # 2. リング (中心x=1.575, 半径0.225)
     fig.add_shape(type="circle", x0=1.575-0.225, y0=-0.225, x1=1.575+0.225, y1=0.225, line=dict(color="orange", width=2))
     
-    # 3. 制限区域 (MATLAB: x=[0, 5.8], y=[-2.45, 2.45])
+    # 3. 制限区域 (x=[0, 5.8], y=[-4.9/2, 4.9/2])
     fig.add_shape(type="rect", x0=0, y0=-2.45, x1=5.8, y1=2.45, line=dict(color=line_color, width=1), layer="below")
     
-    # 4. フリースローサークル (MATLAB: 中心x=5.8, 半径1.8)
+    # 4. フリースローサークル (中心x=5.8, 半径1.8)
     fig.add_shape(type="circle", x0=5.8-1.8, y0=-1.8, x1=5.8+1.8, y1=1.8, line=dict(color=line_color, width=1, dash="dot"), layer="below")
     
-    # 5. 3Pライン
-    # 直線部: x=[0, 2.99], y=±6.6
-    # 円弧部: 中心x=1.575, y=0, 半径6.75
+    # 5. 3ポイントライン (MATLABロジックの厳密な再現)
+    # 直線部: y=±6.6m (7.5-0.9), x=[0, 2.99]
+    # 円弧部: 中心(1.575, 0), 半径6.75m
+    # PlotlyのArcコマンド(A)を使用: 半径x 半径y 角度 フラグ フラグ 終点x 終点y
     three_point_path = (
-        "M 0 -6.6 "              # 下側直線開始
-        "L 2.99 -6.6 "           # 直線終わり
-        "A 6.75 6.75 0 0 1 2.99 6.6 " # 円弧 (中心 1.575, 0)
-        "L 0 6.6"                # 上側直線
+        "M 0 -6.6 "                   # 下側サイドライン接点から開始
+        "L 2.99 -6.6 "                # 直線部
+        "A 6.75 6.75 0 0 1 2.99 6.6 " # 円弧 (終点x=2.99, 終点y=6.6)
+        "L 0 6.6"                     # 上側直線部
     )
     fig.add_shape(type="path", path=three_point_path, line=dict(color=line_color, width=2), layer="below")
 
-    # 6. 外枠（ハーフコート分: 0-14m）
+    # 6. コート外枠とセンターライン (x=14)
     fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2), layer="below")
+    fig.add_shape(type="line", x0=14, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2))
 
-    # レイアウト設定 (横長になるように調整)
+    # レイアウト設定 (サイズを大きくし、余白を削る)
     fig.update_layout(
-        width=800, height=450,
-        xaxis=dict(range=[-1, 15], showgrid=False, zeroline=False, visible=False, scaleanchor="y", scaleratio=1),
-        yaxis=dict(range=[-8, 8], showgrid=False, zeroline=False, visible=False),
+        width=1000,   # 幅を拡大
+        height=600,   # 高さを調整
+        xaxis=dict(
+            range=[-1, 15], 
+            showgrid=False, 
+            zeroline=False, 
+            visible=False, 
+            scaleanchor="y", 
+            scaleratio=1
+        ),
+        yaxis=dict(
+            range=[-8, 8], 
+            showgrid=False, 
+            zeroline=False, 
+            visible=False
+        ),
         plot_bgcolor='white',
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-        margin=dict(l=20, r=20, t=50, b=20)
+        margin=dict(l=10, r=10, t=60, b=10) # マージンを最小化
     )
     
     return fig
