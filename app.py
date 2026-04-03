@@ -142,13 +142,13 @@ with tab1:
     fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
     st.plotly_chart(fig_p, use_container_width=True)
 
-    # --- テーブル表示（総合評価の追加と列順変更） ---
+    # --- テーブル表示 ---
     st.write(f"### {sel_team_name} 選手データ一覧")
     output_p = df_all_p[df_all_p['is_selected']].copy()
     
-    # 総合評価の計算
-    output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF'])/2
-    output_p['貢献量'] = output_p['総合評価'] * output_p['TotalApps']
+    # 総合評価の計算（平均：(攻+守)/2）と貢献量の計算
+    output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
+    output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps'] # 貢献量は和のスケールを維持
     output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
     
     # 列順：総合 -> 攻撃 -> 守備
@@ -170,7 +170,7 @@ with tab1:
             "公式サイト": st.column_config.LinkColumn("公式", display_text="↗", width="small"),
             "背番号": st.column_config.NumberColumn(width="small"),
             "選手名": st.column_config.TextColumn(width="medium"),
-            "総合評価": st.column_config.NumberColumn(help="攻撃評価 + 守備評価")
+            "総合評価": st.column_config.NumberColumn(help="(攻撃評価 + 守備評価) / 2")
         }
     )
 
@@ -185,6 +185,8 @@ with tab2:
         team_p = df_player[df_player['TeamID'] == target_team_id].sort_values('PlayerNo')
         p_options = ["指定なし"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_p.iterrows()]
         sel_p = st.selectbox("強調表示する選手を選択", p_options)
+        
+        # 選択された選手のIDを取得
         target_p_id = int(team_p[team_p['PlayerNameJ'] == sel_p.split(" ", 1)[1]]['PlayerID'].iloc[0]) if sel_p != "指定なし" else None
     else:
         st.subheader(f"リーグ全体 ラインナップ評価分布 ({sel_league})")
@@ -213,6 +215,19 @@ with tab2:
             hovertemplate="<b>%{text}</b><br>プレイ数: %{customdata}回<br>攻: %{x} / 守: %{y}<extra></extra>" if cfg["name"] != "その他" else None
         ))
 
+    # --- 【重要】ここから以前の機能を復活 ---
+    # 選択された選手が特定チームモードで存在する場合、その選手の個人平均線を引く
+    if not is_league_mode and target_p_id:
+        p_stats = df_player[df_player['PlayerID'] == target_p_id]
+        if not p_stats.empty:
+            p_off = p_stats['HensatiOFF'].iloc[0]
+            p_def = p_stats['HensatiDEF'].iloc[0]
+            # 縦線（攻撃偏差値）
+            fig_l.add_vline(x=p_off, line_dash="dash", line_color="#19D3F3", line_width=1.5, annotation_text=f"{sel_p.split(' ')[1]} 平均(攻)", annotation_position="top right")
+            # 横線（守備偏差値）
+            fig_l.add_hline(y=p_def, line_dash="dash", line_color="#19D3F3", line_width=1.5, annotation_text=f"{sel_p.split(' ')[1]} 平均(守)", annotation_position="bottom right")
+    # --- ここまで復活 ---
+
     fig_l.update_layout(
         title={'text': f"<b>{sel_team_name}</b> ラインナップ分析<br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 'x': 0.5, 'y': 0.98, 'xanchor': 'center', 'yanchor': 'top'},
         margin=dict(l=20, r=20, t=110, b=100), xaxis=dict(range=[-30, 30], title="攻撃評価"), yaxis=dict(range=[-30, 30], title="守備評価", scaleanchor="x", scaleratio=1),
@@ -228,13 +243,20 @@ with tab2:
         df_table = df_plot[df_plot['is_top']].copy()
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
         df_table['チーム'] = df_table['TeamID'].map(team_dict)
-        df_table['総合評価'] = (df_table['HensatiOFF'] + df_table['HensatiDEF'])/2
+        # 総合評価（平均：(攻+守)/2）
+        df_table['総合評価'] = (df_table['HensatiOFF'] + df_table['HensatiDEF']) / 2
         # 列順：総合 -> 攻撃 -> 守備
-        output_l = df_table[['チーム', 'UnitNames', '合計プレイ数' if '合計プレイ数' in df_table else 'TotalApps_L', '総合評価', 'HensatiOFF', 'HensatiDEF']]
+        output_l = df_table[['チーム', 'UnitNames', 'TotalApps_L', '総合評価', 'HensatiOFF', 'HensatiDEF']]
         output_l.columns = ['チーム', '構成ユニット', '合計プレイ数', '総合評価', '攻撃評価', '守備評価']
     else:
-        df_table = df_plot[(df_plot['TeamID'] == target_team_id) & (df_plot['LineupSet'].apply(lambda x: target_p_id in x if target_p_id else True))].copy()
-        df_table['総合評価'] = (df_table['HensatiOFF'] + df_table['HensatiDEF'])/2
+        # 特定チームモード：target_p_id があれば絞り込む
+        mask = df_plot['TeamID'] == target_team_id
+        if target_p_id:
+            mask = mask & (df_plot['LineupSet'].apply(lambda x: target_p_id in x))
+        
+        df_table = df_plot[mask].copy()
+        # 総合評価（平均：(攻+守)/2）
+        df_table['総合評価'] = (df_table['HensatiOFF'] + df_table['HensatiDEF']) / 2
         # 列順：総合 -> 攻撃 -> 守備
         output_l = df_table[['UnitNames', 'TotalApps_L', '総合評価', 'HensatiOFF', 'HensatiDEF']]
         output_l.columns = ['構成ユニット', '合計プレイ数', '総合評価', '攻撃評価', '守備評価']
@@ -243,7 +265,7 @@ with tab2:
         st.dataframe(
             output_l.sort_values('合計プレイ数', ascending=False).style.format({'攻撃評価': '{:.1f}', '守備評価': '{:.1f}', '総合評価': '{:.1f}'}),
             use_container_width=True, hide_index=True,
-            column_config={"総合評価": st.column_config.NumberColumn(help="攻撃評価 + 守備評価")}
+            column_config={"総合評価": st.column_config.NumberColumn(help="(攻撃評価 + 守備評価) / 2")}
         )
     else:
         st.info("該当するデータがありません。")
@@ -256,7 +278,7 @@ with tab3:
 
     ### 1. 評価値の定義
     グラフの軸となっている **「攻撃評価」「守備評価」** は、リーグ全体の平均を **0**，標準偏差を **10**として算出しています．
-    * **総合評価**: 攻撃評価と守備評価を単純合算した値です．
+    * **総合評価**: 攻撃評価と守備評価の平均値（(攻撃＋守備)/2）です．
     * **選手評価**: 後述する「ラインナップ評価」で，その選手を含むラインナップのプレイ数重み付平均です．
 
     ### 2. ラインナップデータの集計
