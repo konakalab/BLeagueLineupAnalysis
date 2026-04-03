@@ -590,14 +590,18 @@ with tab2:
         margin=dict(l=20, r=20, t=110, b=100), xaxis=dict(range=[-30, 30], title="攻撃評価"), yaxis=dict(range=[-30, 30], title="守備評価", scaleanchor="x", scaleratio=1),
         height=750, plot_bgcolor='white', hovermode='closest', legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
-    fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
-    fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
 
-    # 2. 選択されたラインナップを強調する線
-    # 下部のプルダウン(sel_lup_name)で選ばれているデータの値を反映
-    if not output_l.empty and 'sel_lup_name' in locals():
-        # 選択中のラインナップの数値を抽出
-        lup_row = df_plot[df_plot['UnitNames'] == sel_lup_name]
+    # --- 1. 全体平均の基準線（0,0の十字） ---
+    fig_l.add_hline(y=0, line_dash="dot", line_color="gray", line_width=1, opacity=0.5)
+    fig_l.add_vline(x=0, line_dash="dot", line_color="gray", line_width=1, opacity=0.5)
+
+    # --- 2. 選択されたラインナップを強調する線 ---
+    # 下部の st.selectbox で指定した key="lup_stats_select" の値を使います
+    selected_lup_in_state = st.session_state.get("lup_stats_select")
+
+    if selected_lup_in_state:
+        # df_plot から選択されたラインナップの数値を抽出
+        lup_row = df_plot[df_plot['UnitNames'] == selected_lup_in_state]
         if not lup_row.empty:
             lup_off = lup_row['HensatiOFF'].iloc[0]
             lup_def = lup_row['HensatiDEF'].iloc[0]
@@ -606,7 +610,7 @@ with tab2:
             fig_l.add_vline(
                 x=lup_off,
                 line_dash="dash",
-                line_color="#FF4B4B", # 強調カラー（赤系）
+                line_color="#FF4B4B",
                 line_width=2,
                 annotation_text=f"攻: {lup_off:+.1f}",
                 annotation_position="top right"
