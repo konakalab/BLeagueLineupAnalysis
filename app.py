@@ -118,6 +118,10 @@ def draw_shot_chart(player_shots, player_name):
             symbol='hexagon', 
             colorscale='RdBu_r', 
             showscale=True,
+            # --- 範囲の設定を追加 ---
+            cmin=0.0,           # 最小値（0点：すべて外れ）
+            cmax=1.5,           # 最大値（1.5pt：3Pが50%で入る超高効率）
+            # ----------------------
             # 【修正：カラーバーのタイトル・単位・長さを変更】
             colorbar=dict(
                 title="期待値 (PPS)", 
