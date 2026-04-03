@@ -750,17 +750,6 @@ with tab2:
                         cmid=lup_target_cmid
                     )
                 )
-
-                for k in sum_values:
-                    fig_lup_shot.add_trace(go.Scattergl(
-                        x=x_range,
-                        y=k - x_range, # y = -x + k
-                        mode='lines',
-                        line=dict(color='black', width=1, dash='dot'),
-                        showlegend=False,
-                        hoverinfo='skip',
-                        opacity=0.3
-                    ))
                     
                 st.plotly_chart(
                     fig_lup_shot, 
