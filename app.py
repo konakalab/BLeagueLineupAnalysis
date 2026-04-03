@@ -615,11 +615,11 @@ with tab2:
             
             # 💡 「自チーム」の判定に target_team_id ではなく actual_team_id を使用
             df_lup_own = df_lup_all_shots[df_lup_all_shots['TeamID'] == actual_team_id]
-            lup_stats_list.append(aggregate_stats(df_lup_own, "ラインナップ（攻撃）"))
+            lup_stats_list.append(aggregate_stats(df_lup_own, "攻撃"))
             
             # 相手チーム（守備時）
             df_lup_opp = df_lup_all_shots[df_lup_all_shots['TeamID'] != actual_team_id]
-            lup_stats_list.append(aggregate_stats(df_lup_opp, "相手チーム（被弾）"))
+            lup_stats_list.append(aggregate_stats(df_lup_opp, "守備"))
             
             st.write(f"#### 選択中: {sel_lup_name}")
             st.dataframe(
@@ -628,6 +628,52 @@ with tab2:
                 }),
                 use_container_width=True, hide_index=True
             )
+            # --- 5. ショットチャートの表示（ラジオボタンで切り替え） ---
+            st.write(f"#### 🎯 {sel_lup_name} ショットチャート分析")
+            
+            lup_chart_mode = st.radio(
+                "表示内容を選択", 
+                ["① ラインナップの攻撃", "② 相手チームの攻撃（被弾）"], 
+                horizontal=True, 
+                key="lup_chart_radio"
+            )
+            
+            # モードに応じてデータを切り替え
+            if lup_chart_mode == "① ラインナップの攻撃":
+                df_lup_disp = df_lup_own
+                lup_chart_title = f"{sel_lup_name} (攻撃)"
+                lup_target_cmid = 1.0  # 攻撃時は1.0pt（平均）を白に
+            else:
+                df_lup_disp = df_lup_opp
+                lup_chart_title = f"{sel_lup_name} (被守備)"
+                lup_target_cmid = 0.9  # 守備時は0.9pt（抑止）を白に
+                
+            if not df_lup_disp.empty:
+                # Tab 1 と同じ共通関数でチャート作成
+                fig_lup_shot = draw_shot_chart(df_lup_disp, lup_chart_title)
+                
+                # ラインナップ分析用にレイアウトを微調整
+                fig_lup_shot.update_layout(
+                    title={
+                        'text': f"<b>{lup_chart_title}</b><br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>",
+                        'y': 0.95, 'x': 0.5, 'xanchor': 'center', 'yanchor': 'top', 
+                        'font': dict(size=20)
+                    },
+                    margin=dict(t=80) # タイトル用の余白
+                )
+
+                # 期待値レンジを 0.0 〜 1.5 で固定（Tab 1 と統一）
+                fig_lup_shot.update_traces(
+                    marker=dict(
+                        cmin=0.0, 
+                        cmax=1.5, 
+                        cmid=lup_target_cmid
+                    )
+                )
+                
+                st.plotly_chart(fig_lup_shot, use_container_width=False, config={'displayModeBar': False})
+            else:
+                st.info("表示できるショットデータがありません。")
         else:
             st.warning(f"このラインナップ（ID: {target_lup_ids}）の出場シーンが見つかりませんでした。")
             
