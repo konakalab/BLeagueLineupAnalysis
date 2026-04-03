@@ -531,14 +531,18 @@ with tab2:
 
     fig_l = go.Figure()
     for cfg in plot_configs:
-        sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]]
+        sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]].copy() # copyを作成
         if sub.empty: continue
         
-        # 共通のツールチップデザインを定義
+        # 💡 データの型を確実に float に変換する（これが最重要です）
+        sub['HensatiOFF'] = sub['HensatiOFF'].astype(float)
+        sub['HensatiDEF'] = sub['HensatiDEF'].astype(float)
+        
+        # 共通のツールチップデザイン（記述形式を微妙に変えています）
         lup_hovertemplate = (
             "<b>%{text}</b><br>" +
             "プレイ数: %{customdata}回<br>" +
-            "攻: %{x:+.1f} / 守: %{y:+.1f}" +  # :+.1f で符号と小数点第1位を表示
+            "攻: %{x:+.1f} / 守: %{y:+.1f}" + 
             "<extra></extra>"
         )
         
@@ -555,8 +559,7 @@ with tab2:
                 opacity=cfg["opacity"], 
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
             ),
-            # ⭐ 条件分岐を外して、すべてのグループで同じテンプレートを使う
-            hovertemplate=lup_hovertemplate
+            hovertemplate=lup_hovertemplate # ここで適用
         ))
 
     # --- ラインナップ分析タブ内のグラフ描画セクション ---
