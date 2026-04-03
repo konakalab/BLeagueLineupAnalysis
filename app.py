@@ -258,7 +258,7 @@ with tab1:
 with tab2:
     # --- 1. データの準備と抽出設定 ---
     n_league_lineups = 50  # リーグ全体時に強調・表示する上位件数
-    df_plot = df_lineup[['TeamID', 'HensatiOFF', 'HensatiDEF', 'TotalApps_L', 'UnitNames', 'LineupSet', 'PlayerID_List']].copy()
+    df_plot = df_lineup[['TeamID', 'HensatiOFF', 'HensatiDEF', 'TotalApps_L', 'UnitNames', 'LineupSet']].copy()
     
     # リーグ全体モード判定
     is_league_mode = (target_team_id is None)
