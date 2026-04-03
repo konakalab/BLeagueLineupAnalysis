@@ -557,6 +557,35 @@ with tab2:
     )
     fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
+    # --- 【追記】合計値（x + y = k）の基準線を追加 ---
+    sum_values = [-20, -10, 0, 10, 20]
+    x_range = np.array([-30, 30]) # グラフの表示範囲
+
+    for k in sum_values:
+        fig_l.add_trace(go.Scattergl(
+            x=x_range,
+            y=k - x_range, # y = -x + k
+            mode='lines',
+            line=dict(color='black', width=1, dash='dot'),
+            showlegend=False,
+            hoverinfo='skip',
+            opacity=0.3
+        ))
+        
+        # 線の上にラベル（合計値）を添える（任意）
+        fig_l.add_annotation(
+            x=25, y=k-25,
+            text=f"合計:{k}",
+            showarrow=False,
+            font=dict(size=10, color="gray"),
+            bgcolor="white",
+            xanchor="left"
+        )
+
+    # 既存の 0 基準線（十字）
+    fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
+    fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
+        
     st.plotly_chart(fig_l, use_container_width=True)
 
     # --- ラインナップ詳細表（総合評価の追加と列順変更） ---
