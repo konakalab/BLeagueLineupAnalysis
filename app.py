@@ -74,86 +74,68 @@ def load_all_data():
     return df_t, df_p, df_l, df_s, period_str
     
 def draw_shot_chart(player_shots, player_name):
-    """
-    MATLABコードの規格を正確に再現。
-    - 3Pライン: エンドライン(x=0)からサイドラインと平行に始まり、円弧へ繋ぐ
-    - レイアウト: 余白を最小化し、チャートを最大化
-    """
-    player_shots = player_shots.copy()
-    player_shots['Result'] = player_shots['ShotPoints'].apply(lambda x: '成功 (Made)' if x > 0 else '失敗 (Missed)')
-    
-    fig = px.scatter(
-        player_shots, 
-        x='RelativeShotX', 
-        y='RelativeShotY', 
-        color='Result', 
-        symbol='Result',
-        color_discrete_map={'成功 (Made)': '#EF553B', '失敗 (Missed)': '#636EFA'},
-        symbol_sequence=['circle', 'x'],
-        hover_data={'PlayText': True, 'RelativeShotX': False, 'RelativeShotY': False},
-        title=f"🏀 {player_name} ショットチャート"
-    )
+    if player_shots.empty:
+        return go.Figure()
 
+    # --- 1. グリッド集計ロジック ---
+    # グリッドの細かさを設定（数値が大きいほど細かくなる）
+    grid_size = 1.0 
+    player_shots['x_bin'] = (player_shots['RelativeShotX'] / grid_size).round() * grid_size
+    player_shots['y_bin'] = (player_shots['RelativeShotY'] / grid_size).round() * grid_size
+
+    # エリアごとに集計（本数と成功数を計算）
+    bin_stats = player_shots.groupby(['x_bin', 'y_bin']).agg(
+        attempts=('ShotPoints', 'count'),
+        made=('ShotPoints', lambda x: (x > 0).sum())
+    ).reset_index()
+
+    bin_stats['fg_pct'] = (bin_stats['made'] / bin_stats['attempts']) * 100
+    # 本数に応じてマーカーサイズを可変にする（上限を設定）
+    bin_stats['msize'] = bin_stats['attempts'].apply(lambda x: min(x * 5 + 5, 25)) 
+
+    # --- 2. 描画 ---
+    fig = go.Figure()
+
+    # ヒートマップ風マーカーの追加
+    fig.add_trace(go.Scatter(
+        x=bin_stats['x_bin'],
+        y=bin_stats['y_bin'],
+        mode='markers',
+        marker=dict(
+            size=bin_stats['msize'],
+            color=bin_stats['fg_pct'],
+            colorscale='RdBu_r', # 赤(高)〜白〜青(低)
+            showscale=True,
+            colorbar=dict(title="FG%", ticksuffix="%"),
+            line=dict(width=1, color='white'),
+            cmid=45 # リーグ平均付近（45%）を白にする設定
+        ),
+        text=[f"試投: {int(a)}<br>成功: {int(m)}<br>確率: {p:.1f}%" 
+              for a, m, p in zip(bin_stats['attempts'], bin_stats['made'], bin_stats['fg_pct'])],
+        hoverinfo='text',
+        name='Shot Density'
+    ))
+
+    # --- 3. コート描画（既存のロジック） ---
     line_color = "#333333"
-    
-    # --- FIBA規格 / MATLAB定義に基づく描画 ---
-    
-    # 1. バックボード (x=1.2, y=[-0.9, 0.9])
     fig.add_shape(type="line", x0=1.2, y0=-0.9, x1=1.2, y1=0.9, line=dict(color="black", width=3))
-    
-    # 2. リング (中心x=1.575, y=0, 半径0.225)
     fig.add_shape(type="circle", x0=1.575-0.225, y0=-0.225, x1=1.575+0.225, y1=0.225, line=dict(color="orange", width=2))
-    
-    # 3. 制限区域 (x=[0, 5.8], y=[-2.45, 2.45])
     fig.add_shape(type="rect", x0=0, y0=-2.45, x1=5.8, y1=2.45, line=dict(color=line_color, width=1.5), layer="below")
     
-    # 4. フリースローサークル (中心x=5.8, y=0, 半径1.8)
-    fig.add_shape(type="circle", x0=5.8-1.8, y0=-1.8, x1=5.8+1.8, y1=1.8, line=dict(color=line_color, width=1, dash="dot"), layer="below")
-    
-    # 5. 【重要】3ポイントラインの修正
-    # 直線と円弧の接続点 x = 2.99
-    # 円弧の半径 = 6.75, 中心 = (1.575, 0)
-    # A (arc) コマンド: rx ry x-axis-rotation large-arc-flag sweep-flag x y
     three_point_path = (
-        "M 0 -6.6 "                   # エンドライン(x=0)の y=-6.6 から開始
-        "L 2.99 -6.6 "                # 接続点(x=2.99)まで直線
-        "A 6.75 6.75 0 0 1 2.99 6.6 " # 半径6.75の弧を描き、反対の接続点(2.99, 6.6)へ
-        "L 0 6.6"                     # エンドライン(x=0)へ直線を引いて閉じる
+        "M 0 -6.6 L 2.99 -6.6 A 6.75 6.75 0 0 1 2.99 6.6 L 0 6.6"
     )
     fig.add_shape(type="path", path=three_point_path, line=dict(color=line_color, width=2.5), layer="below")
-
-    # 6. コート外枠とセンターライン (x=14)
     fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2), layer="below")
-    fig.add_shape(type="line", x0=14, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2))
 
-    # レイアウト設定：図を大きく、軸を消す
+    # レイアウト設定
     fig.update_layout(
-        width=1200,    # 横幅を最大化
-        height=600,    # 適切なアスペクト比
-        xaxis=dict(
-            range=[-0.5, 14.5], 
-            showgrid=False, 
-            zeroline=False, 
-            visible=False, 
-            scaleanchor="y", 
-            scaleratio=1
-        ),
-        yaxis=dict(
-            range=[-7.8, 7.8], 
-            showgrid=False, 
-            zeroline=False, 
-            visible=False
-        ),
+        title=f"🔥 {player_name} ショット効率マップ",
+        width=1000, height=600,
+        xaxis=dict(range=[-0.5, 14.5], visible=False, scaleanchor="y", scaleratio=1),
+        yaxis=dict(range=[-7.8, 7.8], visible=False),
         plot_bgcolor='white',
-        legend=dict(
-            orientation="h", 
-            yanchor="bottom", 
-            y=1.02, 
-            xanchor="center", 
-            x=0.5,
-            font=dict(size=14)
-        ),
-        margin=dict(l=0, r=0, t=50, b=0) # 上下の余白を極限までカット
+        margin=dict(l=50, r=50, t=80, b=50)
     )
     
     return fig
