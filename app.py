@@ -143,33 +143,47 @@ def draw_shot_chart(player_shots, player_name):
     # コート外枠
     fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2), layer="below")
 
-    # レイアウト設定（ズーム・移動の禁止を追加）
+    # 1. レイアウト設定：サイズ最大化と操作制限
     fig.update_layout(
-        title=f"🔥 {player_name} ショット効率マップ",
-        width=1000, height=600,
+        # タイトル位置を調整してグラフ領域を確保
+        title={
+            'text': f"🔥 {player_name} ショット効率マップ",
+            'y': 0.98,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top',
+            'font': dict(size=24) # タイトルを少し大きく
+        },
+        # 解像度を上げるために大きな値を設定（Streamlit側でリサイズされます）
+        width=1200, 
+        height=850, 
+        
         xaxis=dict(
             range=[-0.5, 14.5], 
             visible=False, 
-            fixedrange=True,  # X軸のズーム禁止
+            fixedrange=True, # ズーム禁止
             scaleanchor="y", 
             scaleratio=1
         ),
         yaxis=dict(
             range=[-7.8, 7.8], 
             visible=False,
-            fixedrange=True   # Y軸のズーム禁止
+            fixedrange=True # ズーム禁止
         ),
+        
+        # 【重要】余白を極限まで削ってコートを大きく表示
+        margin=dict(l=5, r=5, t=60, b=5), 
+        
         plot_bgcolor='white',
-        margin=dict(l=50, r=50, t=80, b=50),
-        dragmode=False       # ドラッグによる範囲選択も禁止
+        dragmode=False, # ドラッグ禁止
+        hovermode='closest'
     )
+
+    # 2. 右上のツールバー（ズームボタン等）を完全に非表示にする
+    fig.update_layout(config={'displayModeBar': False})
     
-    # モードバー（右上のカメラアイコンやズームアイコン）からズーム系ボタンを消す
-    fig.update_layout(
-        modebar=dict(
-            remove=["zoom", "pan", "select", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"]
-        )
-    )
+    # ※ もし特定のボタンだけ消したい場合はこちら（通常は丸ごと消すのがスッキリします）
+    # fig.update_layout(modebar=dict(remove=["zoom", "pan", "select", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"]))
     
     return fig
     
