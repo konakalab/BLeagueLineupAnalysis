@@ -138,7 +138,7 @@ def draw_shot_chart(player_shots, player_name):
             size=bin_stats['msize'],
             color=bin_stats['pps'],     # 【修正：色を期待値に変更】
             symbol='hexagon', 
-            colorscale='RdBu_r', 
+            colorscale='Viridis', 
             showscale=True,
             # --- 範囲の設定を追加 ---
             cmin=0.0,           # 最小値（0点：すべて外れ）
