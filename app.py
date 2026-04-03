@@ -565,6 +565,56 @@ with tab2:
     else:
         st.info("該当するデータがありません。")
 
+    # --- 【追加】ラインナップ別 統計セクション（表のみ） ---
+    if not output_l.empty:
+        st.divider()
+        st.write(f"### 📊 {sel_team_name} 特定ラインナップのショット統計")
+        
+        # 1. 分析対象ラインナップの選択（詳細表にあるラインナップから選択）
+        lup_options = output_l['ラインナップ'].tolist()
+        sel_lup_name = st.selectbox("詳細統計を表示するラインナップを選択", lup_options, key="lup_stats_select")
+        
+        # 選択されたラインナップの情報を取得
+        selected_lup_row = df_table[df_table['UnitNames'] == sel_lup_name].iloc[0]
+        target_lup_ids = selected_lup_row['LineupSet'] # set型 {id1, id2, ...}
+        
+        # 2. ショットデータの抽出 (5人全員が同時にオンコートのシーンを特定)
+        h_cols = [f'hLup{i}' for i in range(1, 6)]
+        a_cols = [f'aLup{i}' for i in range(1, 6)]
+        
+        # 5人のIDセットが完全に一致する行を抽出
+        is_lup_on_court = df_shot.apply(
+            lambda x: (set(x[h_cols]) == target_lup_ids) or (set(x[a_cols]) == target_lup_ids), 
+            axis=1
+        )
+        df_lup_all_shots = df_shot[is_lup_on_court].copy()
+        
+        if not df_lup_all_shots.empty:
+            # 3. 統計表の作成
+            lup_stats_list = []
+            
+            # 自チームの攻撃 (そのラインナップの所属チームIDと一致するショット)
+            df_lup_own = df_lup_all_shots[df_lup_all_shots['TeamID'] == selected_lup_row['TeamID']]
+            lup_stats_list.append(aggregate_stats(df_lup_own, "ラインナップ（攻撃）"))
+            
+            # 相手チームの攻撃 (自チーム以外のショット ＝ 被シュート)
+            df_lup_opp = df_lup_all_shots[df_lup_all_shots['TeamID'] != selected_lup_row['TeamID']]
+            lup_stats_list.append(aggregate_stats(df_lup_opp, "相手チーム（被弾）"))
+            
+            # データフレームとして表示
+            st.write(f"#### セット内容: {sel_lup_name}")
+            st.dataframe(
+                pd.DataFrame(lup_stats_list).style.format({
+                    "FG%": "{:.1f}%", 
+                    "2FG%": "{:.1f}%", 
+                    "3FG%": "{:.1f}%"
+                }),
+                use_container_width=True, 
+                hide_index=True
+            )
+        else:
+            st.info("このラインナップが同時出場している際のショットデータが存在しません。")
+            
 # --- タブ3: 算出方法 ---
 with tab3:
     st.header("評価値の算出方法について")
