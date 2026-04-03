@@ -365,20 +365,24 @@ with tab1:
                 elif analysis_mode == "③ オンコート時の相手チーム":
                     own_data = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
                     stats_list.insert(0, aggregate_stats(own_data, "自チーム(味方)"))
-
-            # テーブル表示
+        
+            # テーブル表示（色の設定 .background_gradient を削除）
             st.write(f"### 📊 {chart_title} 成功率統計")
             st.dataframe(
                 pd.DataFrame(stats_list).style.format({
-                    "FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"
-                }).background_gradient(subset=["FG%", "2FG%", "3FG%"], cmap="YlGnBu"), 
-                use_container_width=True, hide_index=True
+                    "FG%": "{:.1f}%", 
+                    "2FG%": "{:.1f}%", 
+                    "3FG%": "{:.1f}%"
+                }), 
+                use_container_width=True, 
+                hide_index=True
             )
-
+        
             # --- 🔥 ショットチャートの描画 ---
             fig_shot = draw_shot_chart(df_display, chart_title)
-            current_cmax = 1.8 if analysis_mode == "① 選手個人のショット" else 1.5
             
+            # チャート側の色（スケール）の設定
+            current_cmax = 1.8 if analysis_mode == "① 選手個人のショット" else 1.5
             fig_shot.update_traces(
                 marker=dict(cmid=target_cmid, cmin=0.0, cmax=current_cmax)
             )
