@@ -531,21 +531,27 @@ with tab2:
 
     fig_l = go.Figure()
     for cfg in plot_configs:
-        sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]].copy() # copyを作成
+        # データのコピーと丸め処理（先ほどの修正を維持）
+        sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]].copy()
         if sub.empty: continue
         
-        # 💡 データの型を確実に float に変換する（これが最重要です）
-        sub['HensatiOFF'] = sub['HensatiOFF'].astype(float)
-        sub['HensatiDEF'] = sub['HensatiDEF'].astype(float)
-        
-        # 共通のツールチップデザイン（記述形式を微妙に変えています）
-        lup_hovertemplate = (
-            "<b>%{text}</b><br>" +
-            "プレイ数: %{customdata}回<br>" +
-            "攻: %{x:.1f} / 守: %{y:.1f}" + 
-            "<extra></extra>"
-        )
-        
+        sub['HensatiOFF'] = sub['HensatiOFF'].astype(float).round(1)
+        sub['HensatiDEF'] = sub['HensatiDEF'].astype(float).round(1)
+
+        # --- 【修正箇所】注目データのみツールチップを表示する設定 ---
+        if cfg["name"] == "その他":
+            # 「その他」は反応させない
+            current_hovertemplate = None
+            current_hoverinfo = 'skip'
+        else:
+            # 注目選手や自チームは詳細を表示
+            current_hovertemplate = (
+                "<b>%{text}</b><br>" +
+                "プレイ数: %{customdata}回<br>" +
+                "攻: %{x:+.1f} / 守: %{y:+.1f}<extra></extra>"
+            )
+            current_hoverinfo = 'all'
+
         fig_l.add_trace(go.Scattergl(
             x=sub['HensatiOFF'], 
             y=sub['HensatiDEF'], 
@@ -559,7 +565,9 @@ with tab2:
                 opacity=cfg["opacity"], 
                 line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
             ),
-            hovertemplate=lup_hovertemplate # ここで適用
+            # 設定を適用
+            hovertemplate=current_hovertemplate,
+            hoverinfo=current_hoverinfo
         ))
 
     # --- ラインナップ分析タブ内のグラフ描画セクション ---
