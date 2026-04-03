@@ -396,17 +396,27 @@ with tab1:
         if not df_display.empty:
             fig_shot = draw_shot_chart(df_display, chart_title)
             
-            # 💡 clim (期待値のレンジ) を常に 0.0 〜 1.5 で固定
-            # target_cmid (中間色/白) は、自チーム=1.0、相手=0.9 のままで OK
+            # 💡 チャート内部にタイトルを追加し、期待値レンジを 0.0 〜 1.5 で固定
+            fig_shot.update_layout(
+                title={
+                    'text': f"<b>{chart_title}</b>",
+                    'y': 0.95,        # グラフ内上部の位置
+                    'x': 0.5,         # 中央
+                    'xanchor': 'center',
+                    'yanchor': 'top',
+                    'font': dict(size=20)
+                }
+            )
+
             fig_shot.update_traces(
                 marker=dict(
-                    cmin=0.0,    # 期待値の最小（0点）
-                    cmax=1.5,    # 期待値の最大（1.5点：3Pが50%で入る超高効率）
+                    cmin=0.0,    # 期待値最小固定
+                    cmax=1.5,    # 期待値最大固定
                     cmid=target_cmid
                 )
             )
             
-            st.plotly_chart(fig_shot, use_container_width=False)
+            st.plotly_chart(fig_shot, use_container_width=False, config={'displayModeBar': False})
         else:
             st.warning("表示できるショットデータがありません。")
             
