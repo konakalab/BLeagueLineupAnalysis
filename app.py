@@ -260,7 +260,7 @@ with tab2:
         df_table['総合評価'] = (df_table['HensatiOFF'] + df_table['HensatiDEF']) / 2
         # 列順：総合 -> 攻撃 -> 守備
         output_l = df_table[['チーム', 'UnitNames', 'TotalApps_L', '総合評価', 'HensatiOFF', 'HensatiDEF']]
-        output_l.columns = ['チーム', '構成ユニット', '合計プレイ数', '総合評価', '攻撃評価', '守備評価']
+        output_l.columns = ['チーム', 'ラインナップ', '合計プレイ数', '総合評価', '攻撃評価', '守備評価']
     else:
         # 特定チームモード：target_p_id があれば絞り込む
         mask = df_plot['TeamID'] == target_team_id
@@ -272,7 +272,7 @@ with tab2:
         df_table['総合評価'] = (df_table['HensatiOFF'] + df_table['HensatiDEF']) / 2
         # 列順：総合 -> 攻撃 -> 守備
         output_l = df_table[['UnitNames', 'TotalApps_L', '総合評価', 'HensatiOFF', 'HensatiDEF']]
-        output_l.columns = ['構成ユニット', '合計プレイ数', '総合評価', '攻撃評価', '守備評価']
+        output_l.columns = ['ラインナップ', '合計プレイ数', '総合評価', '攻撃評価', '守備評価']
 
     if not output_l.empty:
         st.dataframe(
