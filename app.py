@@ -399,7 +399,7 @@ with tab1:
             # 💡 チャート内部にタイトルを追加し、期待値レンジを 0.0 〜 1.5 で固定
             fig_shot.update_layout(
                 title={
-                    'text': f"<b>{chart_title}</b>",
+                    'text': f"<b>{chart_title}</b> <span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>",
                     'y': 0.95,        # グラフ内上部の位置
                     'x': 0.5,         # 中央
                     'xanchor': 'center',
