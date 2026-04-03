@@ -593,6 +593,35 @@ with tab2:
     fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
 
+    # 2. 選択されたラインナップを強調する線
+    # 下部のプルダウン(sel_lup_name)で選ばれているデータの値を反映
+    if not output_l.empty and 'sel_lup_name' in locals():
+        # 選択中のラインナップの数値を抽出
+        lup_row = df_plot[df_plot['UnitNames'] == sel_lup_name]
+        if not lup_row.empty:
+            lup_off = lup_row['HensatiOFF'].iloc[0]
+            lup_def = lup_row['HensatiDEF'].iloc[0]
+
+            # 攻撃評価の強調線（縦線）
+            fig_l.add_vline(
+                x=lup_off,
+                line_dash="dash",
+                line_color="#FF4B4B", # 強調カラー（赤系）
+                line_width=2,
+                annotation_text=f"攻: {lup_off:+.1f}",
+                annotation_position="top right"
+            )
+            
+            # 守備評価の強調線（横線）
+            fig_l.add_hline(
+                y=lup_def,
+                line_dash="dash",
+                line_color="#FF4B4B",
+                line_width=2,
+                annotation_text=f"守: {lup_def:+.1f}",
+                annotation_position="bottom right"
+            )
+            
     for k in sum_values:
         fig_l.add_trace(go.Scattergl(
             x=x_range,
