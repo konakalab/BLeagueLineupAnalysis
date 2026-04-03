@@ -7,42 +7,46 @@ import numpy as np
 # 1. ページ全体の基本設定
 st.set_page_config(page_title="B-League Analytics Dash", layout="wide")
 
-# --- 2. データの読み込みと前処理（高速化版） ---
+# --- 2. データの読み込みと前処理（ショットデータ追加版） ---
 @st.cache_data(ttl=3600)
 def load_all_data():
     df_t = pd.read_csv('table_team.csv')
     df_p = pd.read_csv('table_players.csv')
     df_l = pd.read_csv('table_lineups.csv')
+    # 1. ショット位置データを読み込み対象に追加
+    df_s = pd.read_csv('table_shotpos.csv')
     
     # 前処理（数値変換など）
-    for df in [df_t, df_p, df_l]:
+    # 2. ループ対象に df_s を追加して、列名の空白削除などを一括で行う
+    for df in [df_t, df_p, df_l, df_s]:
         df.columns = [str(c).strip() for c in df.columns]
-        num_cols = ['TeamID', 'PlayerID', 'Order', 'PlayerNo', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'OFFApps', 'DEFApps']
+        
+        # 数値型の列を安全に変換
+        num_cols = ['TeamID', 'PlayerID', 'Order', 'PlayerNo', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'OFFApps', 'DEFApps', 'ShotPoints']
         for col in num_cols:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
-        for col in ['HensatiOFF', 'HensatiDEF', 'RatingOFF']:
+        
+        # 小数点型の列を丸める
+        for col in ['HensatiOFF', 'HensatiDEF', 'RatingOFF', 'RelativeShotX', 'RelativeShotY']:
             if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0).round(1)
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
 
-    # --- IDから「名前」を引く辞書と、「背番号」を引く辞書を作成 ---
+    # --- IDから「名前」を引く辞書等の作成 (既存ロジック維持) ---
     p_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNameJ']))
     p_no_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNo']))
 
-    # --- ラインナップ内の選手名を背番号順に並び替えて結合する関数 ---
     def get_sorted_unit_names(row):
         p_ids = []
         for i in range(1, 6):
             val = row[f'Lineup_{i}']
             if pd.notna(val) and int(val) != 0:
                 p_ids.append(int(val))
-        
         p_info = []
         for pid in p_ids:
             no = p_no_dict.get(pid, 999) 
             name = p_dict.get(pid, "??")
             p_info.append((no, name))
-        
         p_info.sort(key=lambda x: x[0])
         return " / ".join([x[1] for x in p_info])
 
@@ -62,9 +66,11 @@ def load_all_data():
     except:
         pass
         
-    return df_t, df_p, df_l, period_str
+    # 3. 戻り値に df_s を追加
+    return df_t, df_p, df_l, df_s, period_str
 
-df_team, df_player, df_lineup, analysis_period = load_all_data()
+# 4. 関数呼び出し側でも df_shot として受け取る
+df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
 
 # 3. サイドバーのフィルター
 st.sidebar.header("検索フィルター")
