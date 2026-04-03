@@ -103,7 +103,7 @@ def draw_shot_chart(player_shots, player_name):
     bin_stats['pps'] = bin_stats['total_points'] / bin_stats['attempts']
     bin_stats['fg_pct'] = (bin_stats['made'] / bin_stats['attempts']) * 100
     
-    bin_stats['msize'] = bin_stats['attempts'].apply(lambda x: min(np.sqrt(x) * 6 + 5, 25))
+    bin_stats['msize'] = bin_stats['attempts'].apply(lambda x: min(np.sqrt(x) * 6 + 2, 25))
 
     # --- 2. 描画 ---
     fig = go.Figure()
