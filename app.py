@@ -611,11 +611,11 @@ with tab2:
             
             # 自チームの攻撃
             df_lup_own = df_lup_all_shots[df_lup_all_shots['TeamID'] == target_team_id]
-            lup_stats_list.append(aggregate_stats(df_lup_own, "ラインナップ（攻撃）"))
+            lup_stats_list.append(aggregate_stats(df_lup_own, "攻撃"))
             
             # 相手チームの攻撃 (被シュート)
             df_lup_opp = df_lup_all_shots[df_lup_all_shots['TeamID'] != target_team_id]
-            lup_stats_list.append(aggregate_stats(df_lup_opp, "相手チーム（被弾）"))
+            lup_stats_list.append(aggregate_stats(df_lup_opp, "守備"))
             
             st.write(f"#### 選択中: {sel_lup_name}")
             st.dataframe(
