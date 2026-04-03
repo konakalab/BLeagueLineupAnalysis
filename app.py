@@ -78,14 +78,10 @@ def draw_shot_chart(player_shots, player_name):
         return go.Figure()
 
     # --- 1. データのコピーとハニカムグリッド集計ロジック ---
-    df = player_shots.copy()  # 元データを保護するためにコピー
+    df = player_shots.copy()
     
-    size = 0.8  # 六角形のサイズ（密度）の調整用
-    
-    # Y座標をインデックス化
+    size = 0.8  
     df['y_int'] = (df['RelativeShotY'] / (size * 1.5)).round().astype(int)
-    
-    # X座標の計算：Yのインデックスが「奇数」の場合に X を半分（dx/2）ずらす
     dx = size * np.sqrt(3)
     is_odd = (df['y_int'] % 2 != 0)
     
@@ -96,16 +92,17 @@ def draw_shot_chart(player_shots, player_name):
     )
     df['y_bin'] = df['y_int'] * (size * 1.5)
 
-    # エリアごとに集計
+    # 【修正箇所：期待値計算のために total_points を集計に追加】
     bin_stats = df.groupby(['x_bin', 'y_bin']).agg(
         attempts=('ShotPoints', 'count'),
-        made=('ShotPoints', lambda x: (x > 0).sum())
+        made=('ShotPoints', lambda x: (x > 0).sum()),
+        total_points=('ShotPoints', 'sum') # 合計得点
     ).reset_index()
 
+    # 【修正箇所：期待値(pps)と成功率(fg_pct)を計算】
+    bin_stats['pps'] = bin_stats['total_points'] / bin_stats['attempts']
     bin_stats['fg_pct'] = (bin_stats['made'] / bin_stats['attempts']) * 100
     
-    # マーカーサイズ：試投数が多いほど大きく（最小12, 最大22）
-    # √本数 を使うことで、本数が多い時の肥大化を抑えつつ差を出す
     bin_stats['msize'] = bin_stats['attempts'].apply(lambda x: min(np.sqrt(x) * 6 + 5, 25))
 
     # --- 2. 描画 ---
@@ -117,67 +114,47 @@ def draw_shot_chart(player_shots, player_name):
         mode='markers',
         marker=dict(
             size=bin_stats['msize'],
-            color=bin_stats['fg_pct'],
+            color=bin_stats['pps'],     # 【修正：色を期待値に変更】
             symbol='hexagon', 
             colorscale='RdBu_r', 
             showscale=True,
-            # --- ここからカラーバーの調整 ---
-        colorbar=dict(
-            title="FG%", 
-            ticksuffix="%",
-            len=0.5,           # 長さを半分にする（0.3〜0.7くらいで調整してください）
-            lenmode='fraction',
-            y=0.5,             # 垂直方向の中央に配置
-            yanchor='middle',
-            thickness=20       # バーの太さ（お好みで）
-        ),
-        # --- ここまで ---
+            # 【修正：カラーバーのタイトル・単位・長さを変更】
+            colorbar=dict(
+                title="期待値 (PPS)", 
+                ticksuffix="pt",
+                len=0.5,                # 長さを半分に
+                lenmode='fraction',
+                y=0.5,
+                yanchor='middle',
+                thickness=20
+            ),
             line=dict(width=0.5, color='white'), 
-            cmid=45 # 45%付近を白（中立）にする
+            cmid=1.0 # 【修正：期待値1.0点を中間色（白）に設定】
         ),
-        text=[f"試投: {int(a)}<br>成功: {int(m)}<br>確率: {p:.1f}%" 
-              for a, m, p in zip(bin_stats['attempts'], bin_stats['made'], bin_stats['fg_pct'])],
+        # 【修正：ホバーテキストに期待値を表示】
+        text=[f"期待値: {p:.2f} pt<br>試投: {int(a)}<br>成功率: {pct:.1f}%" 
+              for p, a, pct in zip(bin_stats['pps'], bin_stats['attempts'], bin_stats['fg_pct'])],
         hoverinfo='text'
     ))
 
-    # --- 3. コート描画（既存のロジック） ---
+    # --- 3. コート描画（以下、既存のロジックと同じ） ---
     line_color = "#333333"
-    # ゴール付近
     fig.add_shape(type="line", x0=1.2, y0=-0.9, x1=1.2, y1=0.9, line=dict(color="black", width=3))
     fig.add_shape(type="circle", x0=1.575-0.225, y0=-0.225, x1=1.575+0.225, y1=0.225, line=dict(color="orange", width=2))
-    # 制限区域
     fig.add_shape(type="rect", x0=0, y0=-2.45, x1=5.8, y1=2.45, line=dict(color=line_color, width=1.5), layer="below")
-    # 3Pライン
     three_point_path = "M 0 -6.6 L 2.99 -6.6 A 6.75 6.75 0 0 1 2.99 6.6 L 0 6.6"
     fig.add_shape(type="path", path=three_point_path, line=dict(color=line_color, width=2.5), layer="below")
-    # コート外枠
     fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2), layer="below")
 
-    # レイアウト設定
     fig.update_layout(
         title={
             'text': f"🔥 {player_name} ショット効率マップ",
-            'y': 0.98,
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top',
+            'y': 0.98, 'x': 0.5, 'xanchor': 'center', 'yanchor': 'top',
             'font': dict(size=24)
         },
-        width=1200, 
-        height=850, 
-        xaxis=dict(
-            range=[-0.5, 14.5], 
-            visible=False, 
-            fixedrange=True, # ズーム禁止
-            scaleanchor="y", 
-            scaleratio=1
-        ),
-        yaxis=dict(
-            range=[-7.8, 7.8], 
-            visible=False,
-            fixedrange=True # ズーム禁止
-        ),
-        # 余白を最小化
+        width=1200, height=850, 
+        xaxis=dict(range=[-0.5, 14.5], visible=False, fixedrange=True, scaleanchor="y", scaleratio=1),
+        yaxis=dict(range=[-7.8, 7.8], visible=False, fixedrange=True),
         margin=dict(l=5, r=5, t=60, b=5), 
         plot_bgcolor='white',
         dragmode=False,
