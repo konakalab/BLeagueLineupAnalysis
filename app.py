@@ -533,10 +533,30 @@ with tab2:
     for cfg in plot_configs:
         sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]]
         if sub.empty: continue
+        
+        # 共通のツールチップデザインを定義
+        lup_hovertemplate = (
+            "<b>%{text}</b><br>" +
+            "プレイ数: %{customdata}回<br>" +
+            "攻: %{x:+.1f} / 守: %{y:+.1f}" +  # :+.1f で符号と小数点第1位を表示
+            "<extra></extra>"
+        )
+        
         fig_l.add_trace(go.Scattergl(
-            x=sub['HensatiOFF'], y=sub['HensatiDEF'], mode='markers', name=cfg["name"], text=sub['UnitNames'], customdata=sub['TotalApps_L'],
-            marker=dict(size=np.sqrt(sub['TotalApps_L'] + 1) * 1.5, color=cfg["color"], opacity=cfg["opacity"], line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None),
-            hovertemplate="<b>%{text}</b><br>プレイ数: %{customdata}回<br>攻: %{x} / 守: %{y}<extra></extra>" if cfg["name"] != "その他" else None
+            x=sub['HensatiOFF'], 
+            y=sub['HensatiDEF'], 
+            mode='markers', 
+            name=cfg["name"], 
+            text=sub['UnitNames'], 
+            customdata=sub['TotalApps_L'],
+            marker=dict(
+                size=np.sqrt(sub['TotalApps_L'] + 1) * 1.5, 
+                color=cfg["color"], 
+                opacity=cfg["opacity"], 
+                line=dict(width=0.5, color='white') if cfg["name"] != "その他" else None
+            ),
+            # ⭐ 条件分岐を外して、すべてのグループで同じテンプレートを使う
+            hovertemplate=lup_hovertemplate
         ))
 
     # --- ラインナップ分析タブ内のグラフ描画セクション ---
