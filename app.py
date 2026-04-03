@@ -249,13 +249,23 @@ if default_player_id:
 st.title(f"🏀 Bリーグ選手評価：{sel_team_name if 'sel_team_name' in locals() else ''}")
 st.info(f"📅 分析対象期間：{analysis_period}")
 
-# --- 3. メインエリアのフィルター (サイドバーから移動) ---
-# フィルターを横並びにする
+# --- 3. メインエリアのフィルター ---
 f_col1, f_col2 = st.columns(2)
 
 with f_col1:
     list_league = list(dict.fromkeys(df_team['League']))
-    sel_league = st.selectbox("リーグ選択", list_league)
+    
+    # 【URL反映】チームIDがある場合、そのチームが所属するリーグを初期値にする
+    initial_league_index = 0
+    if 'default_team_id' in locals() and default_team_id:
+        # IDからリーグ名を特定
+        matched_league = df_team[df_team['TeamID'] == default_team_id]['League']
+        if not matched_league.empty:
+            league_name = matched_league.iloc[0]
+            if league_name in list_league:
+                initial_league_index = list_league.index(league_name)
+
+    sel_league = st.selectbox("リーグ選択", list_league, index=initial_league_index)
 
 with f_col2:
     teams_in_league = df_team[df_team['League'] == sel_league].copy()
@@ -265,13 +275,28 @@ with f_col2:
         teams_sorted = teams_in_league.sort_values(by='TeamID', ascending=True)
 
     list_teams = ["リーグ全体"] + teams_sorted['Team'].tolist()
-    sel_team_name = st.selectbox("チーム選択", list_teams)
+    
+    # 【URL反映】チームリストの中から、該当するチームのインデックスを探す
+    initial_team_index = 0
+    if 'default_team_id' in locals() and default_team_id:
+        matched_team = teams_sorted[teams_sorted['TeamID'] == default_team_id]['Team']
+        if not matched_team.empty:
+            target_name = matched_team.iloc[0]
+            if target_name in list_teams:
+                initial_team_index = list_teams.index(target_name)
 
-# 選択されたIDの確定
+    sel_team_name = st.selectbox("チーム選択", list_teams, index=initial_team_index)
+
+# --- 選択内容を確定させ、URLを更新する ---
 if sel_team_name == "リーグ全体":
     target_team_id = None
+    # リーグ全体ならパラメータを消す
+    if "team_id" in st.query_params:
+        del st.query_params["team_id"]
 else:
     target_team_id = int(teams_sorted[teams_sorted['Team'] == sel_team_name]['TeamID'].iloc[0])
+    # 選択されたIDをURLに書き込む（int型に変換して保存）
+    st.query_params["team_id"] = target_team_id
 
 # --- ツールチップ・キャプション ---
 with st.expander("💡 この分析ツールの使い方はこちら"):
