@@ -243,35 +243,42 @@ with tab1:
         p_options = ["チーム全体"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_players.iterrows()]
         sel_p_shot = st.selectbox("表示対象を選択", p_options)
 
-        # --- データの抽出ロジック ---
-        # 試合識別列（データに合わせてScheduleIDを使用）
-        g_id = 'ScheduleID' 
+        # --- データの抽出ロジック (ScheduleKey対応版) ---
+        # 試合識別列の候補に 'ScheduleKey' を追加
+        possible_game_cols = ['ScheduleKey', 'ScheduleID', 'GameID', 'Game_ID']
+        g_id = next((c for c in possible_game_cols if c in df_shot.columns), None)
 
-        if sel_p_shot == "チーム全体":
-            # チームが関わっている全試合のIDを特定
-            relevant_games = df_shot[df_shot['TeamID'] == target_team_id][g_id].unique()
-            # その試合で行われた「すべてのチーム（自社・他社）」のシュートを抽出
-            s_all = df_shot[df_shot[g_id].isin(relevant_games)].copy()
-            chart_title = f"{sel_team_name} (チーム全体)"
+        if g_id is None:
+            st.error(f"試合識別列が見つかりません。列名を確認してください。")
+            st.write("検出された列名:", list(df_shot.columns))
+            s_all = pd.DataFrame()
         else:
-            # 個人の場合
-            p_name_only = sel_p_shot.split(" ", 1)[1]
-            selected_player_id = int(team_players[team_players['PlayerNameJ'] == p_name_only]['PlayerID'].iloc[0])
+            # 念のためID列を数値または文字列として統一
+            df_shot[g_id] = df_shot[g_id].astype(str)
             
-            # その選手が出場（＝その選手のシュート記録がある）した試合IDを特定
-            player_games = df_shot[df_shot['PlayerID'] == selected_player_id][g_id].unique()
-            # その試合の全シュートを抽出
-            s_all = df_shot[df_shot[g_id].isin(player_games)].copy()
-            chart_title = p_name_only
+            if sel_p_shot == "チーム全体":
+                # チームが関わっている全試合のKeyを特定
+                relevant_games = df_shot[df_shot['TeamID'] == target_team_id][g_id].unique()
+                # その試合の全ショット（自他含む）を抽出
+                s_all = df_shot[df_shot[g_id].isin(relevant_games)].copy()
+                chart_title = f"{sel_team_name} (チーム全体)"
+            else:
+                # 個人の場合
+                p_name_only = sel_p_shot.split(" ", 1)[1]
+                selected_player_id = int(team_players[team_players['PlayerNameJ'] == p_name_only]['PlayerID'].iloc[0])
+                # その選手が出場した試合のKeyを特定
+                player_games = df_shot[df_shot['PlayerID'] == selected_player_id][g_id].unique()
+                s_all = df_shot[df_shot[g_id].isin(player_games)].copy()
+                chart_title = p_name_only
 
         if not s_all.empty:
-            # 型変換の徹底
+            # データのクリーニング
             s_all['ActionCD1'] = pd.to_numeric(s_all['ActionCD1'], errors='coerce').fillna(0).astype(int)
             s_all['TeamID'] = pd.to_numeric(s_all['TeamID'], errors='coerce').fillna(0).astype(int)
             current_team_id = int(target_team_id)
 
-            # 集計関数
             def aggregate_stats(df_sub, label):
+                # ActionCD1の定義に従った集計
                 is_3p = df_sub['ActionCD1'].isin([1, 2])
                 is_2p = df_sub['ActionCD1'].isin([3, 4, 5, 6])
                 is_made = df_sub['ActionCD1'].isin([1, 3, 4])
@@ -288,7 +295,7 @@ with tab1:
                     "3FGM": _3fgm, "3FGA": _3fga, "3FG%": calc_pct(_3fgm, _3fga)
                 }
 
-            # 自チームと相手チームに分けて集計
+            # 集計実行
             df_own = s_all[s_all['TeamID'] == current_team_id]
             df_opp = s_all[s_all['TeamID'] != current_team_id]
 
@@ -297,7 +304,6 @@ with tab1:
                 aggregate_stats(df_opp, "相手チーム")
             ])
 
-            # 表の表示
             st.write(f"### {chart_title} オンコート時シュート統計")
             st.dataframe(
                 res_df.style.format({"FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"}), 
@@ -305,12 +311,11 @@ with tab1:
                 hide_index=True
             )
 
-            # ショットチャートの表示（自チームの成功/失敗のみ表示する場合）
-            # もし相手のシュートも表示したい場合は s_all を渡してください
+            # 自チームのショット位置をプロット
             st.plotly_chart(draw_shot_chart(df_own, chart_title), use_container_width=True)
             
-        else:
-            st.warning("表示対象のショット位置データが見つかりません。")
+        elif g_id is not None:
+            st.warning("該当するショットデータが見つかりませんでした。")
             
         st.divider()
         
