@@ -105,7 +105,8 @@ def draw_shot_chart(player_shots, player_name):
     bin_stats['fg_pct'] = (bin_stats['made'] / bin_stats['attempts']) * 100
     
     # マーカーサイズ：試投数が多いほど大きく（最小12, 最大22）
-    bin_stats['msize'] = bin_stats['attempts'].apply(lambda x: min(x * 2 + 12, 22)) 
+    # √本数 を使うことで、本数が多い時の肥大化を抑えつつ差を出す
+    bin_stats['msize'] = bin_stats['attempts'].apply(lambda x: min(np.sqrt(x) * 6 + 5, 25))
 
     # --- 2. 描画 ---
     fig = go.Figure()
