@@ -565,7 +565,7 @@ with tab2:
     else:
         st.info("該当するデータがありません。")
 
-    # --- 【修正版】ラインナップ別 統計セクション ---
+    # --- 【修正版】ラインナップ別 統計セクション（リーグ全体対応） ---
     if not output_l.empty:
         st.divider()
         st.write(f"### 📊 {sel_team_name} 特定ラインナップのショット統計")
@@ -575,48 +575,50 @@ with tab2:
         lup_options = lup_sorted['ラインナップ'].tolist()
         sel_lup_name = st.selectbox("詳細統計を表示するラインナップを選択", lup_options, key="lup_stats_select")
         
-        # 2. 選択されたラインナップのIDセットを「数値」に統一して作成
+        # 2. 選択されたラインナップの情報を取得
         selected_lup_info = df_table[df_table['UnitNames'] == sel_lup_name].iloc[0]
-        # set内の全てのIDをintに変換（念のため）
         target_lup_ids = {int(float(pid)) for pid in selected_lup_info['LineupSet']}
+        
+        # 💡 リーグ全体モードの場合、そのラインナップが所属する本来の TeamID を取得しておく
+        actual_team_id = int(selected_lup_info['TeamID'])
         
         # 3. ショットデータの抽出
         h_cols = [f'hLup{i}' for i in range(1, 6)]
         a_cols = [f'aLup{i}' for i in range(1, 6)]
         
-        # 💡 型を int に変換しながら 5人全員一致を判定する関数
         def is_exact_match(row, target_set):
             try:
-                # NaNを排除し、数値を int に変換してセット化
                 h_set = {int(float(row[c])) for c in h_cols if pd.notna(row[c])}
                 if h_set == target_set: return True
-                
                 a_set = {int(float(row[c])) for c in a_cols if pd.notna(row[c])}
                 if a_set == target_set: return True
             except:
                 return False
             return False
 
-        # 現在のチームに関連するショットデータに絞り込んでから判定（高速化）
-        df_team_shots = df_shot[
-            (df_shot['TeamID'] == target_team_id) | 
-            (df_shot['ScheduleKey'].isin(df_shot[df_shot['TeamID'] == target_team_id]['ScheduleKey']))
-        ].copy()
+        # 💡 判定対象：リーグ全体なら全データ、チーム選択中ならそのチーム関連に絞る
+        if is_league_mode:
+            df_search_base = df_shot.copy()
+        else:
+            df_search_base = df_shot[
+                (df_shot['TeamID'] == target_team_id) | 
+                (df_shot['ScheduleKey'].isin(df_shot[df_shot['TeamID'] == target_team_id]['ScheduleKey']))
+            ].copy()
 
         # 判定実行
-        is_lup_on_court = df_team_shots.apply(lambda r: is_exact_match(r, target_lup_ids), axis=1)
-        df_lup_all_shots = df_team_shots[is_lup_on_court].copy()
+        is_lup_on_court = df_search_base.apply(lambda r: is_exact_match(r, target_lup_ids), axis=1)
+        df_lup_all_shots = df_search_base[is_lup_on_court].copy()
         
         if not df_lup_all_shots.empty:
             # 4. 統計表の作成
             lup_stats_list = []
             
-            # 自チーム（攻撃時）: TeamID が自チームのもの
-            df_lup_own = df_lup_all_shots[df_lup_all_shots['TeamID'] == target_team_id]
+            # 💡 「自チーム」の判定に target_team_id ではなく actual_team_id を使用
+            df_lup_own = df_lup_all_shots[df_lup_all_shots['TeamID'] == actual_team_id]
             lup_stats_list.append(aggregate_stats(df_lup_own, "ラインナップ（攻撃）"))
             
-            # 相手チーム（守備時）: TeamID が自チーム以外
-            df_lup_opp = df_lup_all_shots[df_lup_all_shots['TeamID'] != target_team_id]
+            # 相手チーム（守備時）
+            df_lup_opp = df_lup_all_shots[df_lup_all_shots['TeamID'] != actual_team_id]
             lup_stats_list.append(aggregate_stats(df_lup_opp, "相手チーム（被弾）"))
             
             st.write(f"#### 選択中: {sel_lup_name}")
