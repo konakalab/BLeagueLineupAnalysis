@@ -290,7 +290,7 @@ with tab2:
         
         plot_configs = [
             {"name": "その他", "color": "#E5ECF6", "opacity": 0.1},
-            {"name": f"上位{n_league_lineups}件", "color": "#636EFA", "opacity": 0.8}
+            {"name": f"上位{n_league_lineups}件", "color": "#636EFA", "opacity": 0.6}
         ]
     else:
         def get_group_team(row):
