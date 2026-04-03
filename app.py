@@ -143,14 +143,32 @@ def draw_shot_chart(player_shots, player_name):
     # コート外枠
     fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2), layer="below")
 
-    # レイアウト設定
+    # レイアウト設定（ズーム・移動の禁止を追加）
     fig.update_layout(
         title=f"🔥 {player_name} ショット効率マップ",
         width=1000, height=600,
-        xaxis=dict(range=[-0.5, 14.5], visible=False, scaleanchor="y", scaleratio=1),
-        yaxis=dict(range=[-7.8, 7.8], visible=False),
+        xaxis=dict(
+            range=[-0.5, 14.5], 
+            visible=False, 
+            fixedrange=True,  # X軸のズーム禁止
+            scaleanchor="y", 
+            scaleratio=1
+        ),
+        yaxis=dict(
+            range=[-7.8, 7.8], 
+            visible=False,
+            fixedrange=True   # Y軸のズーム禁止
+        ),
         plot_bgcolor='white',
-        margin=dict(l=50, r=50, t=80, b=50)
+        margin=dict(l=50, r=50, t=80, b=50),
+        dragmode=False       # ドラッグによる範囲選択も禁止
+    )
+    
+    # モードバー（右上のカメラアイコンやズームアイコン）からズーム系ボタンを消す
+    fig.update_layout(
+        modebar=dict(
+            remove=["zoom", "pan", "select", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"]
+        )
     )
     
     return fig
