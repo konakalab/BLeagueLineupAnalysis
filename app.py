@@ -201,54 +201,56 @@ with tab1:
     st.write(f"### {sel_team_name} 選手データ一覧")
     
     if is_league_mode:
-        # 1. 必要な列を内部変数名のまま抽出
-        output_p = df_all_p[['TeamID', 'PlayerNo', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']].copy()
+        # 1. 必要な列を抽出
+        output_p = df_all_p[['TeamID', 'PlayerID', 'PlayerNo', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']].copy()
         
-        # チーム名をマッピング
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
         output_p['チーム'] = output_p['TeamID'].map(team_dict)
         output_p = output_p.dropna(subset=['チーム'])
         
-        # 2. 貢献量の計算
         output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
         
-        # 3. 列の並べ替え（この時点ではまだ元の列名を使用する）
-        output_p = output_p[['チーム', 'PlayerNo', 'PlayerNameJ', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF']]
+        # 2. 【重要】リンク用のURL列を動的に作成
+        output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
         
-        # 4. 最後に表示用の日本語名に一括置換
-        output_p.columns = ['チーム', '背番号', '選手名', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
+        # 列の並べ替え（選手名の次に公式サイトを配置）
+        output_p = output_p[['チーム', 'PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF']]
+        output_p.columns = ['チーム', '背番号', '選手名', '公式サイト', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
         
-        # --- ここを修正： '貢献量' から '合計プレイ数' へ ---
         output_p = output_p.sort_values('合計プレイ数', ascending=False)
-        
-        st.caption("※ リーグ全体の全選手を「合計プレイ数」順に表示しています。貢献量 = (攻撃評価 + 守備評価) × プレイ数")
     else:
         # 特定チームモード
         df_tp = df_all_p[df_all_p['is_selected']].copy()
-        
-        # 貢献量の計算
         df_tp['貢献量'] = (df_tp['HensatiOFF'] + df_tp['HensatiDEF']) * df_tp['TotalApps']
         
-        # 列の選択
-        output_p = df_tp[['PlayerNo', 'PlayerNameJ', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF']]
+        # リンク用のURL列を作成
+        df_tp['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + df_tp['PlayerID'].astype(str)
         
-        # 日本語名に置換
-        output_p.columns = ['背番号', '選手名', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
-        
-        # 貢献量でソート
+        output_p = df_tp[['PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF']]
+        output_p.columns = ['背番号', '選手名', '公式サイト', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
         output_p = output_p.sort_values('合計プレイ数', ascending=False)
-        
-    # 共通のデータフレーム表示
+
+    # 3. Streamlit Dataframeの設定
     st.dataframe(
         output_p.style.format({
-            '背番号': '{:d}',
             '合計プレイ数': '{:d}',
             '貢献量': '{:,.0f}', 
             '攻撃評価': '{:.1f}', 
             '守備評価': '{:.1f}'
         }), 
         use_container_width=True, 
-        hide_index=True
+        hide_index=True,
+        column_config={
+            # 「公式サイト」列をリンク形式にし、アイコン（↗）を表示させる
+            "公式サイト": st.column_config.LinkColumn(
+                "公式", 
+                display_text="↗",  # ここに外部リンク風のアイコンを指定
+                width="small",
+                help="B.LEAGUE公式サイトの選手プロフィールを開きます"
+            ),
+            "背番号": st.column_config.NumberColumn(width="small"),
+            "選手名": st.column_config.TextColumn(width="medium"),
+        }
     )
     
 
