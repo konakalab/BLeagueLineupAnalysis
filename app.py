@@ -215,18 +215,31 @@ with tab2:
             hovertemplate="<b>%{text}</b><br>プレイ数: %{customdata}回<br>攻: %{x} / 守: %{y}<extra></extra>" if cfg["name"] != "その他" else None
         ))
 
-    # --- 【重要】ここから以前の機能を復活 ---
-    # 選択された選手が特定チームモードで存在する場合、その選手の個人平均線を引く
+    # --- ラインナップ分析タブ内のグラフ描画セクション ---
     if not is_league_mode and target_p_id:
         p_stats = df_player[df_player['PlayerID'] == target_p_id]
         if not p_stats.empty:
             p_off = p_stats['HensatiOFF'].iloc[0]
             p_def = p_stats['HensatiDEF'].iloc[0]
+            
             # 縦線（攻撃偏差値）
-            fig_l.add_vline(x=p_off, line_dash="dash", line_color="#19D3F3", line_width=1.5, annotation_text=f"{sel_p.split(' ')[1]} 平均(攻)", annotation_position="top right")
+            fig_l.add_vline(
+                x=p_off, 
+                line_dash="dash", 
+                line_color="#19D3F3", 
+                line_width=1.5, 
+                annotation_text=f"攻: {p_off:+.1f}", # ← ここを修正
+                annotation_position="top right"
+            )
             # 横線（守備偏差値）
-            fig_l.add_hline(y=p_def, line_dash="dash", line_color="#19D3F3", line_width=1.5, annotation_text=f"{sel_p.split(' ')[1]} 平均(守)", annotation_position="bottom right")
-    # --- ここまで復活 ---
+            fig_l.add_hline(
+                y=p_def, 
+                line_dash="dash", 
+                line_color="#19D3F3", 
+                line_width=1.5, 
+                annotation_text=f"守: {p_def:+.1f}", # ← ここを修正
+                annotation_position="bottom right"
+            )
 
     fig_l.update_layout(
         title={'text': f"<b>{sel_team_name}</b> ラインナップ分析<br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 'x': 0.5, 'y': 0.98, 'xanchor': 'center', 'yanchor': 'top'},
