@@ -143,21 +143,18 @@ def draw_shot_chart(player_shots, player_name):
     # コート外枠
     fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2), layer="below")
 
-    # 1. レイアウト設定：サイズ最大化と操作制限
+    # レイアウト設定
     fig.update_layout(
-        # タイトル位置を調整してグラフ領域を確保
         title={
             'text': f"🔥 {player_name} ショット効率マップ",
             'y': 0.98,
             'x': 0.5,
             'xanchor': 'center',
             'yanchor': 'top',
-            'font': dict(size=24) # タイトルを少し大きく
+            'font': dict(size=24)
         },
-        # 解像度を上げるために大きな値を設定（Streamlit側でリサイズされます）
         width=1200, 
         height=850, 
-        
         xaxis=dict(
             range=[-0.5, 14.5], 
             visible=False, 
@@ -170,20 +167,12 @@ def draw_shot_chart(player_shots, player_name):
             visible=False,
             fixedrange=True # ズーム禁止
         ),
-        
-        # 【重要】余白を極限まで削ってコートを大きく表示
+        # 余白を最小化
         margin=dict(l=5, r=5, t=60, b=5), 
-        
         plot_bgcolor='white',
-        dragmode=False, # ドラッグ禁止
+        dragmode=False,
         hovermode='closest'
     )
-
-    # 2. 右上のツールバー（ズームボタン等）を完全に非表示にする
-    fig.update_layout(config={'displayModeBar': False})
-    
-    # ※ もし特定のボタンだけ消したい場合はこちら（通常は丸ごと消すのがスッキリします）
-    # fig.update_layout(modebar=dict(remove=["zoom", "pan", "select", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"]))
     
     return fig
     
@@ -264,7 +253,12 @@ with tab1:
         fig_p.update_traces(textposition='top center', selector=dict(name=sel_team_name))
     fig_p.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
-    st.plotly_chart(fig_p, use_container_width=True)
+    # 表示ボタン（ModeBar）を消す設定はここで行います
+    st.plotly_chart(
+        draw_shot_chart(df_own, chart_title), 
+        use_container_width=True, 
+        config={'displayModeBar': False}
+    )
 
     # --- ショット分析セクション ---
     if not is_league_mode:
