@@ -256,18 +256,68 @@ with tab1:
             chart_title = p_name_only
 
         if not display_shots.empty:
-            # 1. 統計数値を上に配置（横並びのメトリクス）
-            total = len(display_shots)
-            made = len(display_shots[display_shots['ShotPoints'] > 0])
-            fg_pct = (made / total * 100) if total > 0 else 0
+            # --- データの集計 ---
+            # 2Pと3Pの判定（ShotPointsが2か3か、あるいはデータ内のフラグ等で判定）
+            # ここではShotPointsが3より少ない（2以下）かつ0より大きいものを2点シュートとして集計します
+            # ※ ShotPoints > 0 は成功(Made)
             
-            m1, m2, m3 = st.columns(3)
-            m1.metric("総シュート試投数", f"{total} 本")
-            m2.metric("成功数", f"{made} 本")
-            m3.metric("成功率 (FG%)", f"{fg_pct:.1f} %")
+            s = display_shots
+            fga = len(s)
+            fgm = len(s[s['ShotPoints'] > 0])
+            
+            # 3Pの集計 (ShotPointsが3のもの。データ構造によっては調整が必要)
+            # 一般的なショットログではShotPointsに3が入るか、Action等で判別します
+            # ここではシンプルに成功点数で判定します
+            df_3p = s[s['ShotPoints'] == 3]
+            df_2p = s[s['ShotPoints'] == 2]
+            
+            # 試投数(Attempted)の集計
+            # 3P試投はShotPointsに関わらず3Pエリアからのシュートを指すため
+            # 本来はActionCD等で判別しますが、一旦成功点数があるものから逆算、
+            # またはエリア判定(3Pライン外)で集計するのが正確です。
+            # 今回は簡易的に「3点入ったもの」を3FGM、「それ以外の成功」を2FGMとします。
+            # 試投(A)については、すべてのログをFGAとし、内訳を表示します。
 
-            # 2. ショットチャートを下に配置（大きく表示）
-            # draw_shot_chart関数の内部でwidth=1100などに設定するとより効果的です
+            # 正確な判別のためのロジック（例）
+            fgm_3 = len(s[s['ShotPoints'] == 3])
+            fgm_2 = len(s[s['ShotPoints'] == 2])
+            
+            # 成功率の計算
+            def get_pct(m, a):
+                return f"{(m/a*100):.1f}%" if a > 0 else "0.0%"
+
+            # 表用のデータフレーム作成
+            stats_data = {
+                "指標": ["Total (FG)", "2-Point", "3-Point"],
+                "FGM": [fgm, fgm_2, fgm_3],
+                "FGA": ["-", "-", "-"], # 試投数の詳細判別フラグがCSVにある場合はここに入れます
+                "成功率": [get_pct(fgm, fga), "-", "-"]
+            }
+            
+            # --- 指定された略号列での表示 ---
+            # 試投数(A)の判別がActionCD等で可能な場合、以下のように展開します
+            # ここでは FGA = 全データ, 3FGA = 3Pライン外からのシュートとして集計
+            
+            # 3Pエリア判定（簡易的にリングからの距離が6.75m以上を3P試投とする）
+            dist_sq = (s['RelativeShotX'] - 1.575)**2 + (s['RelativeShotY'])**2
+            is_3p_area = dist_sq >= 6.75**2
+            
+            _3fga = len(s[is_3p_area])
+            _2fga = fga - _3fga
+            _3fgm = fgm_3
+            _2fgm = fgm_2
+            
+            res_df = pd.DataFrame([{
+                "FGM": fgm, "FGA": fga,
+                "2FGM": _2fgm, "2FGA": _2fga,
+                "3FGM": _3fgm, "3FGA": _3fga
+            }])
+
+            # 統計表の表示
+            st.write(f"### {chart_title} シュート統計")
+            st.dataframe(res_df, use_container_width=True, hide_index=True)
+
+            # ショットチャートを下に配置
             st.plotly_chart(draw_shot_chart(display_shots, chart_title), use_container_width=True)
             
         else:
