@@ -219,6 +219,7 @@ with tab1:
     df_all_p['MarkerSize'] = np.sqrt(df_all_p['TotalApps'] + 1)
     is_league_mode = (target_team_id is None)
 
+    # 1. 選手評価分布のデータ準備
     if is_league_mode:
         st.subheader(f"リーグ全体 選手評価分布 ({sel_league})")
         df_all_p['DisplayGroup'] = sel_league
@@ -233,130 +234,110 @@ with tab1:
         df_all_p['Label'] = df_all_p.apply(lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1)
         color_map = {sel_team_name: '#EF553B', 'その他': '#E5ECF6'}
         df_all_p = df_all_p.sort_values('is_selected')
-        opacity_val = df_all_p['is_selected'].map({True: 0.15, False: 0.3})
+        # 選択チームを前面に出すための不透明度設定
+        opacity_val = 0.8 
 
+    # 2. 選手評価散布図の作成
     fig_p = px.scatter(
         df_all_p, x='HensatiOFF', y='HensatiDEF', color='DisplayGroup', size='MarkerSize', text='Label', hover_name='PlayerNameJ',
         hover_data={'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 'TotalApps': True, 'DisplayGroup': False, 'MarkerSize': False, 'Label': False},
-        color_discrete_map=color_map, labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計プレイ数'},
-        opacity=opacity_val if is_league_mode else None
+        color_discrete_map=color_map, labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計プレイ数'}
     )
 
     fig_p.update_layout(
         title={'text': f"<b>{sel_team_name}</b> 選手評価分布<br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 'x': 0.5, 'y': 0.98, 'xanchor': 'center', 'yanchor': 'top'},
         margin=dict(l=20, r=20, t=100, b=100),
-        xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='lightgray', showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"),
-        yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1, showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"),
-        height=750, plot_bgcolor='white', hovermode='closest', legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
+        xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='lightgray', showspikes=True),
+        yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1, showspikes=True),
+        height=750, plot_bgcolor='white', hovermode='closest',
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
-    if not is_league_mode:
-        fig_p.update_traces(textposition='top center', selector=dict(name=sel_team_name))
     fig_p.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
+    
+    # 散布図の表示
+    st.plotly_chart(fig_p, use_container_width=True)
 
-    # --- ショット分析セクション ---
+    # 3. ショット分析セクション (チーム選択時のみ表示)
     if not is_league_mode:
         st.divider()
         st.write(f"## 🏀 {sel_team_name} ショット分析")
         
-        # 選手選択（チーム全体か個人か）
         team_players = df_all_p[df_all_p['TeamID'] == target_team_id].sort_values('PlayerNo')
         p_options = ["チーム全体"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_players.iterrows()]
-        sel_p_shot = st.selectbox("表示対象を選択", p_options)
+        sel_p_shot = st.selectbox("ショットデータの表示対象を選択", p_options)
 
-        # --- データの抽出ロジック (ScheduleKey対応版) ---
-        # 試合識別列の候補に 'ScheduleKey' を追加
+        # 試合識別列の自動判別
         possible_game_cols = ['ScheduleKey', 'ScheduleID', 'GameID', 'Game_ID']
         g_id = next((c for c in possible_game_cols if c in df_shot.columns), None)
 
-        if g_id is None:
-            st.error(f"試合識別列が見つかりません。列名を確認してください。")
-            st.write("検出された列名:", list(df_shot.columns))
-            s_all = pd.DataFrame()
-        else:
-            # 念のためID列を数値または文字列として統一
+        if g_id is not None:
             df_shot[g_id] = df_shot[g_id].astype(str)
             
+            # データの抽出
             if sel_p_shot == "チーム全体":
-                # チームが関わっている全試合のKeyを特定
                 relevant_games = df_shot[df_shot['TeamID'] == target_team_id][g_id].unique()
-                # その試合の全ショット（自他含む）を抽出
                 s_all = df_shot[df_shot[g_id].isin(relevant_games)].copy()
                 chart_title = f"{sel_team_name} (チーム全体)"
             else:
-                # 個人の場合
                 p_name_only = sel_p_shot.split(" ", 1)[1]
                 selected_player_id = int(team_players[team_players['PlayerNameJ'] == p_name_only]['PlayerID'].iloc[0])
-                # その選手が出場した試合のKeyを特定
                 player_games = df_shot[df_shot['PlayerID'] == selected_player_id][g_id].unique()
                 s_all = df_shot[df_shot[g_id].isin(player_games)].copy()
                 chart_title = p_name_only
 
-        if not s_all.empty:
-            # データのクリーニング
-            s_all['ActionCD1'] = pd.to_numeric(s_all['ActionCD1'], errors='coerce').fillna(0).astype(int)
-            s_all['TeamID'] = pd.to_numeric(s_all['TeamID'], errors='coerce').fillna(0).astype(int)
-            current_team_id = int(target_team_id)
+            if not s_all.empty:
+                # 統計集計用関数
+                def aggregate_stats(df_sub, label):
+                    is_3p = df_sub['ActionCD1'].isin([1, 2])
+                    is_2p = df_sub['ActionCD1'].isin([3, 4, 5, 6])
+                    is_made = df_sub['ActionCD1'].isin([1, 3, 4])
+                    _3fgm, _3fga = int((is_3p & is_made).sum()), int(is_3p.sum())
+                    _2fgm, _2fga = int((is_2p & is_made).sum()), int(is_2p.sum())
+                    fgm, fga = _3fgm + _2fgm, _3fga + _2fga
+                    calc_pct = lambda m, a: (m / a * 100) if a > 0 else 0.0
+                    return {
+                        "区分": label, "FGM": fgm, "FGA": fga, "FG%": calc_pct(fgm, fga),
+                        "2FGM": _2fgm, "2FGA": _2fga, "2FG%": calc_pct(_2fgm, _2fga),
+                        "3FGM": _3fgm, "3FGA": _3fga, "3FG%": calc_pct(_3fgm, _3fga)
+                    }
 
-            def aggregate_stats(df_sub, label):
-                # ActionCD1の定義に従った集計
-                is_3p = df_sub['ActionCD1'].isin([1, 2])
-                is_2p = df_sub['ActionCD1'].isin([3, 4, 5, 6])
-                is_made = df_sub['ActionCD1'].isin([1, 3, 4])
+                current_team_id = int(target_team_id)
+                df_own = s_all[s_all['TeamID'] == current_team_id]
+                df_opp = s_all[s_all['TeamID'] != current_team_id]
+
+                res_df = pd.DataFrame([
+                    aggregate_stats(df_own, "自チーム"), 
+                    aggregate_stats(df_opp, "相手チーム")
+                ])
+
+                # 統計テーブル表示
+                st.write(f"### {chart_title} オンコート時シュート統計")
+                st.dataframe(
+                    res_df.style.format({"FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"}), 
+                    use_container_width=True, hide_index=True
+                )
+
+                # ショットチャート表示 (ここで関数の返り値を変数に入れる)
+                fig_shot = draw_shot_chart(df_own, chart_title)
+                st.plotly_chart(fig_shot, use_container_width=True, config={'displayModeBar': False})
                 
-                _3fgm, _3fga = int((is_3p & is_made).sum()), int(is_3p.sum())
-                _2fgm, _2fga = int((is_2p & is_made).sum()), int(is_2p.sum())
-                fgm, fga = _3fgm + _2fgm, _3fga + _2fga
-                
-                calc_pct = lambda m, a: (m / a * 100) if a > 0 else 0.0
-                
-                return {
-                    "区分": label, "FGM": fgm, "FGA": fga, "FG%": calc_pct(fgm, fga),
-                    "2FGM": _2fgm, "2FGA": _2fga, "2FG%": calc_pct(_2fgm, _2fga),
-                    "3FGM": _3fgm, "3FGA": _3fga, "3FG%": calc_pct(_3fgm, _3fga)
-                }
+            else:
+                st.warning("該当するショットデータが見つかりませんでした。")
+        else:
+            st.error("ショットデータに試合識別列が見つかりません。")
 
-            # 集計実行
-            df_own = s_all[s_all['TeamID'] == current_team_id]
-            df_opp = s_all[s_all['TeamID'] != current_team_id]
-
-            res_df = pd.DataFrame([
-                aggregate_stats(df_own, "自チーム"), 
-                aggregate_stats(df_opp, "相手チーム")
-            ])
-
-            st.write(f"### {chart_title} オンコート時シュート統計")
-            st.dataframe(
-                res_df.style.format({"FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"}), 
-                use_container_width=True, 
-                hide_index=True
-            )
-
-            # 自チームのショット位置をプロット
-            st.plotly_chart(
-                draw_shot_chart(df_own, chart_title), 
-                use_container_width=True,
-                config={'displayModeBar': False} # ツールバーを非表示
-            )
-        elif g_id is not None:
-            st.warning("該当するショットデータが見つかりませんでした。")
-            
-        st.divider()
-        
-    # --- テーブル表示 ---
+    # 4. 選手データ一覧テーブル
+    st.divider()
     st.write(f"### {sel_team_name} 選手データ一覧")
     output_p = df_all_p[df_all_p['is_selected']].copy()
-    
-    # 総合評価の計算（平均：(攻+守)/2）と貢献量の計算
     output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
-    output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps'] # 貢献量は和のスケールを維持
+    output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
     output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
     
-    # 列順：総合 -> 攻撃 -> 守備
     if is_league_mode:
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
         output_p['チーム'] = output_p['TeamID'].map(team_dict)
-        output_p = output_p.dropna(subset=['チーム'])
         cols = ['チーム', 'PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
     else:
         cols = ['PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
