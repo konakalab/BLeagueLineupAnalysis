@@ -565,69 +565,7 @@ with tab2:
     else:
         st.info("該当するデータがありません。")
 
-    # --- 【修正版】ラインナップ別 統計セクション ---
-    if not output_l.empty:
-        st.divider()
-        st.write(f"### 📊 {sel_team_name} 特定ラインナップのショット統計")
-        
-        # 1. プレイ数の多い順にソートした選択肢を作成
-        lup_sorted = output_l.sort_values('合計プレイ数', ascending=False)
-        lup_options = lup_sorted['ラインナップ'].tolist()
-        
-        sel_lup_name = st.selectbox(
-            "詳細統計を表示するラインナップを選択", 
-            lup_options, 
-            key="lup_stats_select"
-        )
-        
-        # 2. 選択されたラインナップの情報を取得
-        selected_lup_row = df_table[df_table['UnitNames'] == sel_lup_name].iloc[0]
-        # 💡 IDを確実に int 型の set に変換
-        target_lup_ids = {int(pid) for pid in selected_lup_row['LineupSet']} 
-        
-        # 3. ショットデータの抽出
-        h_cols = [f'hLup{i}' for i in range(1, 6)]
-        a_cols = [f'aLup{i}' for i in range(1, 6)]
-        
-        # 💡 型の不一致を防ぐため、ショットデータのID列も int に変換しながら比較
-        # apply(axis=1) は重いため、まずは対象チームが含まれる試合だけに絞り込むと安全です
-        df_relevant_shots = df_shot[df_shot['ScheduleKey'].isin(df_display['ScheduleKey'])].copy()
-
-        def check_match(row, target_set):
-            # ホーム側かアウェイ側のどちらかが一致するか
-            h_set = {int(row[c]) for c in h_cols if pd.notna(row[c])}
-            if h_set == target_set: return True
-            a_set = {int(row[c]) for c in a_cols if pd.notna(row[c])}
-            if a_set == target_set: return True
-            return False
-
-        # 判定実行
-        is_lup_on_court = df_relevant_shots.apply(lambda r: check_match(r, target_lup_ids), axis=1)
-        df_lup_all_shots = df_relevant_shots[is_lup_on_court].copy()
-        
-        if not df_lup_all_shots.empty:
-            # 4. 統計表の作成
-            lup_stats_list = []
-            
-            # 自チームの攻撃
-            df_lup_own = df_lup_all_shots[df_lup_all_shots['TeamID'] == target_team_id]
-            lup_stats_list.append(aggregate_stats(df_lup_own, "ラインナップ（攻撃）"))
-            
-            # 相手チームの攻撃 (被シュート)
-            df_lup_opp = df_lup_all_shots[df_lup_all_shots['TeamID'] != target_team_id]
-            lup_stats_list.append(aggregate_stats(df_lup_opp, "相手チーム（被弾）"))
-            
-            st.write(f"#### 選択中: {sel_lup_name}")
-            st.dataframe(
-                pd.DataFrame(lup_stats_list).style.format({
-                    "FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"
-                }),
-                use_container_width=True, hide_index=True
-            )
-        else:
-            # データがない場合のデバッグ情報
-            st.warning(f"このラインナップ（ID: {target_lup_ids}）の出場シーンがショットデータから見つかりませんでした。")
-            st.info("ヒント：ショットデータ側の PlayerID カラム名や型が正しいか確認してください。")
+    
             
 # --- タブ3: 算出方法 ---
 with tab3:
