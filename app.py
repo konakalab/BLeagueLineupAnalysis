@@ -235,7 +235,7 @@ with tab1:
         color_map = {sel_team_name: '#EF553B', 'その他': '#E5ECF6'}
         df_all_p = df_all_p.sort_values('is_selected')
         # 選択チームを前面に出すための不透明度設定
-        opacity_val = 0.8 
+        opacity_val = 0.5 
 
     # 2. 選手評価散布図の作成
     fig_p = px.scatter(
@@ -385,7 +385,7 @@ with tab2:
             if target_p_id and target_p_id in row['LineupSet']: return "注目選手"
             return sel_team_name if row['TeamID'] == target_team_id else "その他"
         df_plot['DisplayGroup'] = df_plot.apply(get_group_team, axis=1)
-        plot_configs = [{"name": "その他", "color": "#E5ECF6", "opacity": 0.15}, {"name": sel_team_name, "color": "#EF553B", "opacity": 0.4}, {"name": "注目選手", "color": "#19D3F3", "opacity": 0.8}]
+        plot_configs = [{"name": "その他", "color": "#E5ECF6", "opacity": 0.15}, {"name": sel_team_name, "color": "#EF553B", "opacity": 0.4}, {"name": "注目選手", "color": "#19D3F3", "opacity": 0.6}]
 
     fig_l = go.Figure()
     for cfg in plot_configs:
