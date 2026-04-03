@@ -231,6 +231,20 @@ def draw_shot_chart(player_shots, player_name):
 # 4. 関数呼び出し側でも df_shot として受け取る
 df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
 
+# --- アプリ冒頭：URLパラメータの取得 ---
+query_params = st.query_params
+
+# URLに team_id があれば取得、なければ None
+default_team_id = query_params.get("team_id")
+if default_team_id:
+    default_team_id = int(default_team_id)
+
+# URLに player_id があれば取得
+default_player_id = query_params.get("player_id")
+if default_player_id:
+    default_player_id = int(default_player_id)
+    
+
 # --- 4. メインタイトル ---
 st.title(f"🏀 Bリーグ選手評価：{sel_team_name if 'sel_team_name' in locals() else ''}")
 st.info(f"📅 分析対象期間：{analysis_period}")
