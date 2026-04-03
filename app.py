@@ -589,9 +589,9 @@ with tab2:
         h_cols = [f'hLup{i}' for i in range(1, 6)]
         a_cols = [f'aLup{i}' for i in range(1, 6)]
         
-        # 💡 型の不一致を防ぐため、ショットデータのID列も int に変換しながら比較
-        # apply(axis=1) は重いため、まずは対象チームが含まれる試合だけに絞り込むと安全です
-        df_relevant_shots = df_shot[df_shot['ScheduleKey'].isin(df_display['ScheduleKey'])].copy()
+        # 💡 df_display に頼らず、現在のターゲットチームの全試合キーをここで取得する
+        team_schedule_keys = df_shot[df_shot['TeamID'] == target_team_id]['ScheduleKey'].unique()
+        df_relevant_shots = df_shot[df_shot['ScheduleKey'].isin(team_schedule_keys)].copy()
 
         def check_match(row, target_set):
             # ホーム側かアウェイ側のどちらかが一致するか
