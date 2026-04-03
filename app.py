@@ -311,16 +311,14 @@ with tab1:
         st.divider()
         st.write(f"## 🏀 {sel_team_name} ショット分析")
         
-        # 1. 選手選択
+        # --- 1. 選手選択 ---
         team_players = df_all_p[df_all_p['TeamID'] == target_team_id].sort_values('PlayerNo')
         p_options = ["チーム全体"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_players.iterrows()]
         sel_p_shot = st.selectbox("分析対象の選手を選択", p_options)
 
-        analysis_mode = "チーム全体" 
-        target_cmid = 1.0
-
+        # --- 2. データの切り分け ---
         if sel_p_shot != "チーム全体":
-            # 2. 分析モードの切り替え
+            # --- 【選手個人モード】 ---
             analysis_mode = st.radio(
                 "分析内容",
                 ["① 選手個人のショット", "② オンコート時の自チーム全体", "③ オンコート時の相手チーム"],
@@ -328,74 +326,60 @@ with tab1:
             )
             
             p_name_only = sel_p_shot.split(" ", 1)[1]
+            # 💡 ここで変数を確実に定義
             selected_player_id = int(team_players[team_players['PlayerNameJ'] == p_name_only]['PlayerID'].iloc[0])
             
-            # --- オンコート判定ロジック ---
-            on_court_cols = [c for c in df_shot.columns if 'PlayerID_' in c and c != 'PlayerID']
-            is_on_court = (df_shot[on_court_cols] == selected_player_id).any(axis=1)
+            # オンコート判定 (新カラム名に対応)
+            all_lup_cols = [f'hLup{i}' for i in range(1, 6)] + [f'aLup{i}' for i in range(1, 6)]
+            is_on_court = (df_shot[all_lup_cols] == selected_player_id).any(axis=1)
             df_on_court_all = df_shot[is_on_court].copy()
 
+            # 3行スタッツの作成
+            stats_list = []
+            df_personal = df_shot[df_shot['PlayerID'] == selected_player_id]
+            df_own_on = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
+            df_opp_on = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
+            
+            stats_list.append(aggregate_stats(df_personal, "1. 選手個人"))
+            stats_list.append(aggregate_stats(df_own_on, "2. 自チーム(オンコート)"))
+            stats_list.append(aggregate_stats(df_opp_on, "3. 相手チーム(被弾)"))
+            
+            st.write(f"### 📊 {p_name_only} オンコート統計まとめ")
+            st.dataframe(pd.DataFrame(stats_list).style.format({"FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"}), use_container_width=True, hide_index=True)
+
+            # チャート表示用データの決定
             if analysis_mode == "① 選手個人のショット":
-                df_display = df_shot[df_shot['PlayerID'] == selected_player_id].copy()
-                chart_title = f"{p_name_only} (個人シュート)"
-                
+                df_display = df_personal
+                chart_title = f"{p_name_only} (個人)"
+                target_cmid = 1.0
             elif analysis_mode == "② オンコート時の自チーム全体":
-                df_display = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
-                chart_title = f"{p_name_only} 出場時 (自チーム全体)"
-                
-            elif analysis_mode == "③ オンコート時の相手チーム":
-                df_display = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
-                chart_title = f"{p_name_only} 出場時 (相手の被シュート)"
-                target_cmid = 0.9 
+                df_display = df_own_on
+                chart_title = f"{p_name_only} 出場時 (自チーム)"
+                target_cmid = 1.0
+            else:
+                df_display = df_opp_on
+                chart_title = f"{p_name_only} 出場時 (相手チーム)"
+                target_cmid = 0.9
+
         else:
+            # --- 【チーム全体モード】 ---
             df_display = df_shot[df_shot['TeamID'] == target_team_id].copy()
             chart_title = f"{sel_team_name} (チーム全体)"
+            target_cmid = 1.0
+            
+            st.write(f"### 📊 {sel_team_name} チーム全体統計")
+            st.dataframe(pd.DataFrame([aggregate_stats(df_display, "チーム全体")]).style.format({"FG%": "{:.1f}%"}), use_container_width=True, hide_index=True)
 
-        # --- 3. 表示処理 (ここに追加しました) ---
+        # --- 3. ショットチャートの描画 (共通処理) ---
         if not df_display.empty:
-            # --- 📊 統計テーブルの作成 (常に3項目集計) ---
-            stats_list = []
-            
-            # ① 選手個人のショット
-            df_personal = df_shot[df_shot['PlayerID'] == selected_player_id]
-            stats_list.append(aggregate_stats(df_personal, "1. 選手個人"))
-            
-            # ② オンコート時の自チーム全体 (味方全員)
-            df_own_on = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
-            stats_list.append(aggregate_stats(df_own_on, "2. 自チーム(オンコート)"))
-            
-            # ③ オンコート時の相手チーム (被シュート)
-            df_opp_on = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
-            stats_list.append(aggregate_stats(df_opp_on, "3. 相手チーム(オンコート)"))
-        
-            # データフレームに変換
-            res_df = pd.DataFrame(stats_list)
-        
-            # テーブル表示（色の設定なし、フォーマットのみ）
-            st.write(f"### 📊 {p_name_only} オンコート統計まとめ")
-            st.dataframe(
-                res_df.style.format({
-                    "FG%": "{:.1f}%", 
-                    "2FG%": "{:.1f}%", 
-                    "3FG%": "{:.1f}%"
-                }), 
-                use_container_width=True, 
-                hide_index=True
-            )
-        
-            # --- 🔥 ショットチャートの描画 ---
-            # チャート自体はラジオボタンで選択している「analysis_mode」に従って描画
             fig_shot = draw_shot_chart(df_display, chart_title)
-            
-            # モードに応じた色の基準値設定
-            current_cmax = 1.8 if analysis_mode == "① 選手個人のショット" else 1.5
-            fig_shot.update_traces(
-                marker=dict(cmid=target_cmid, cmin=0.0, cmax=current_cmax)
-            )
-            
-            st.plotly_chart(fig_shot, use_container_width=False, config={'displayModeBar': False})
+            # 期待値の色の基準を調整
+            current_cmax = 1.8 if sel_p_shot != "チーム全体" and "個人" in analysis_mode else 1.5
+            fig_shot.update_traces(marker=dict(cmid=target_cmid, cmax=current_cmax))
+            st.plotly_chart(fig_shot, use_container_width=False)
         else:
-            st.warning("該当するショットデータが見つかりませんでした。")
+            st.warning("表示できるショットデータがありません。")
+            
     # 4. 選手データ一覧テーブル
     st.divider()
     st.write(f"### {sel_team_name} 選手データ一覧")
