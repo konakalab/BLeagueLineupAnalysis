@@ -558,7 +558,7 @@ with tab2:
     fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
     # --- 【追記】合計値（x + y = k）の基準線を追加 ---
-    sum_values = [-30, -20, -10, 0, 10, 20, 30]
+    sum_values = [-40, -30, -20, -10, 0, 10, 20, 30, 40]
     x_range = np.array([-30, 30]) # グラフの表示範囲
 
     for k in sum_values:
@@ -572,8 +572,6 @@ with tab2:
             opacity=0.3
         ))
         
-        
-
     # 既存の 0 基準線（十字）
     fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
@@ -718,7 +716,18 @@ with tab2:
                         cmid=lup_target_cmid
                     )
                 )
-                
+
+                for k in sum_values:
+                    fig_lup_shot.add_trace(go.Scattergl(
+                        x=x_range,
+                        y=k - x_range, # y = -x + k
+                        mode='lines',
+                        line=dict(color='black', width=1, dash='dot'),
+                        showlegend=False,
+                        hoverinfo='skip',
+                        opacity=0.3
+                    ))
+                    
                 st.plotly_chart(
                     fig_lup_shot, 
                     use_container_width=False, 
