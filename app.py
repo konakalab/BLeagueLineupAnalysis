@@ -6,8 +6,11 @@ import numpy as np
 
 # 1. ページ全体の基本設定
 st.set_page_config(page_title="B-League Analytics Dash", layout="wide")
-# --- 修正箇所：背景色を薄い木の色（ベージュ系）に設定 ---
 bg_color = "#FFFFFF"
+sum_values = [-40, -30, -20, -10, 0, 10, 20, 30, 40]
+x_range = np.array([-30, 30]) # グラフの表示範囲
+
+
 # --- 2. データの読み込みと前処理（ショットデータ追加版） ---
 @st.cache_data(ttl=3600)
 def load_all_data():
@@ -569,9 +572,6 @@ with tab2:
     )
     fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
-    # --- 【追記】合計値（x + y = k）の基準線を追加 ---
-    sum_values = [-40, -30, -20, -10, 0, 10, 20, 30, 40]
-    x_range = np.array([-30, 30]) # グラフの表示範囲
 
     for k in sum_values:
         fig_l.add_trace(go.Scattergl(
