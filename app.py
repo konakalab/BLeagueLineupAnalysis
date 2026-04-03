@@ -633,7 +633,7 @@ with tab2:
             
             lup_chart_mode = st.radio(
                 "表示内容を選択", 
-                ["① ラインナップの攻撃", "② 相手チームの攻撃（被弾）"], 
+                ["① ラインナップの攻撃", "② ラインナップの守備"], 
                 horizontal=True, 
                 key="lup_chart_radio"
             )
@@ -642,11 +642,11 @@ with tab2:
             if lup_chart_mode == "① ラインナップの攻撃":
                 df_lup_disp = df_lup_own
                 lup_chart_title = f"{sel_lup_name} (攻撃)"
-                lup_target_cmid = 1.0  # 攻撃時は1.0pt（平均）を白に
+                lup_target_cmid = 1.0  
             else:
                 df_lup_disp = df_lup_opp
-                lup_chart_title = f"{sel_lup_name} (被守備)"
-                lup_target_cmid = 0.9  # 守備時は0.9pt（抑止）を白に
+                lup_chart_title = f"{sel_lup_name} (守備)"
+                lup_target_cmid = 1.0  
                 
             if not df_lup_disp.empty:
                 # Tab 1 と同じ共通関数でチャート作成
