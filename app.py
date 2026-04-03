@@ -227,38 +227,45 @@ def draw_shot_chart(player_shots, player_name):
 # 4. 関数呼び出し側でも df_shot として受け取る
 df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
 
-# 3. サイドバーのフィルター
-st.sidebar.header("検索フィルター")
-list_league = list(dict.fromkeys(df_team['League']))
-sel_league = st.sidebar.selectbox("リーグ選択", list_league)
+# --- 4. メインタイトル ---
+st.title(f"🏀 Bリーグ選手評価：{sel_team_name if 'sel_team_name' in locals() else ''}")
+st.info(f"📅 分析対象期間：{analysis_period}")
 
-teams_in_league = df_team[df_team['League'] == sel_league].copy()
-if 'Order' in teams_in_league.columns:
-    teams_sorted = teams_in_league.sort_values(by='Order', ascending=True)
-else:
-    teams_sorted = teams_in_league.sort_values(by='TeamID', ascending=True)
+# --- 3. メインエリアのフィルター (サイドバーから移動) ---
+# フィルターを横並びにする
+f_col1, f_col2 = st.columns(2)
 
-list_teams = ["リーグ全体"] + teams_sorted['Team'].tolist()
-sel_team_name = st.sidebar.selectbox("チーム選択", list_teams)
+with f_col1:
+    list_league = list(dict.fromkeys(df_team['League']))
+    sel_league = st.selectbox("リーグ選択", list_league)
 
+with f_col2:
+    teams_in_league = df_team[df_team['League'] == sel_league].copy()
+    if 'Order' in teams_in_league.columns:
+        teams_sorted = teams_in_league.sort_values(by='Order', ascending=True)
+    else:
+        teams_sorted = teams_in_league.sort_values(by='TeamID', ascending=True)
+
+    list_teams = ["リーグ全体"] + teams_sorted['Team'].tolist()
+    sel_team_name = st.selectbox("チーム選択", list_teams)
+
+# 選択されたIDの確定
 if sel_team_name == "リーグ全体":
     target_team_id = None
 else:
     target_team_id = int(teams_sorted[teams_sorted['Team'] == sel_team_name]['TeamID'].iloc[0])
 
-# 4. メインタイトル
-st.title(f"🏀 Bリーグ選手評価：{sel_team_name} ")
-st.info(f"📅 分析対象期間：{analysis_period}")
-
+# --- ツールチップ・キャプション ---
 with st.expander("💡 この分析ツールの使い方はこちら"):
-    st.write("""
-    1. 左側のサイドバーでリーグとチームを選択してください。
+    st.write(f"""
+    1. 上のドロップダウンメニューで**リーグ**と**チーム**を選択してください。
     2. 各グラフのドットにマウスを合わせると詳細データが表示されます。
     3. ラインナップ分析では、特定の選手を強調して表示できます。
     """)
 st.caption(f"Developed by [@konakalab](https://x.com/konakalab) | 📅 データ更新：{analysis_period}")
 
-tab1, tab2, tab3 = st.tabs(["選手分析", "ラインナップ分析","評価方法の概要"])
+# --- タブの配置 ---
+tab1, tab2, tab3 = st.tabs(["選手分析", "ラインナップ分析", "評価方法の概要"])
 
 # --- タブ1: 選手分析 ---
 with tab1:
