@@ -141,7 +141,50 @@ def draw_shot_chart(player_shots, player_name):
         hoverinfo='text'
     ))
 
+    # --- 3. コート描画（三角関数による精密な円弧再現） ---
+    line_color = "#333333"
+    hoop_x = 1.575
+    three_radius = 6.75
+    side_dist_y = 6.6 
 
+    # 円弧と直線の交点における角度を計算 (ラジアン)
+    # sin(theta) = 6.6 / 6.75
+    angle_at_intersect = np.arcsin(side_dist_y / three_radius)
+    
+    # 円弧上の点を生成 (20分割して滑らかに)
+    angles = np.linspace(-angle_at_intersect, angle_at_intersect, 20)
+    arc_points = []
+    for a in angles:
+        px = hoop_x + three_radius * np.cos(a)
+        py = hoop_x + three_radius * np.sin(a) # ここは hoop_y(0) + ...
+        # 正確には py = three_radius * np.sin(a)
+        arc_points.append(f"L {px:.3f} {three_radius * np.sin(a):.3f}")
+
+    # パスの組み立て
+    # 1. 下側のコーナー直線
+    # 2. 生成した円弧の点群
+    # 3. 上側のコーナー直線
+    path_segments = [f"M 0 {-side_dist_y}", f"L {hoop_x + three_radius * np.cos(-angle_at_intersect):.3f} {-side_dist_y}"]
+    path_segments.extend(arc_points)
+    path_segments.append(f"L 0 {side_dist_y}")
+    
+    three_point_full_path = " ".join(path_segments)
+
+    fig.add_shape(
+        type="path",
+        path=three_point_full_path,
+        line=dict(color=line_color, width=2.5),
+        layer="below"
+    )
+
+    # --- 他のパーツはそのまま ---
+    # ゴール付近
+    fig.add_shape(type="line", x0=1.2, y0=-0.9, x1=1.2, y1=0.9, line=dict(color="black", width=3))
+    fig.add_shape(type="circle", x0=hoop_x-0.225, y0=-0.225, x1=hoop_x+0.225, y1=0.225, line=dict(color="orange", width=2))
+    # 制限区域
+    fig.add_shape(type="rect", x0=0, y0=-2.45, x1=5.8, y1=2.45, line=dict(color=line_color, width=1.5), layer="below")
+    # 外枠
+    fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2), layer="below")
     
     fig.update_layout(
         title={
