@@ -13,16 +13,22 @@ def load_all_data():
     df_t = pd.read_csv('table_team.csv')
     df_p = pd.read_csv('table_players.csv')
     df_l = pd.read_csv('table_lineups.csv')
-    # 1. ショット位置データを読み込み対象に追加
-    df_s = pd.read_csv('table_shotpos.csv')
     
-    # 前処理（数値変換など）
-    # 2. ループ対象に df_s を追加して、列名の空白削除などを一括で行う
+    # --- 修正箇所：CSVからParquetの読み込みに変更 ---
+    try:
+        # engine='pyarrow' を指定するとより高速・安定します
+        df_s = pd.read_parquet('table_shotpos.parquet')
+    except Exception as e:
+        st.error(f"Parquetファイルの読み込みに失敗しました: {e}")
+        # ファイルがない場合のバックアップとして空のDFを作成
+        df_s = pd.DataFrame(columns=['ScheduleKey', 'TeamID', 'PlayerID', 'ActionCD1', 'RelativeShotX', 'RelativeShotY', 'ShotPoints'])
+
+    # 前処理（列名の空白削除など）
     for df in [df_t, df_p, df_l, df_s]:
         df.columns = [str(c).strip() for c in df.columns]
         
         # 数値型の列を安全に変換
-        num_cols = ['TeamID', 'PlayerID', 'Order', 'PlayerNo', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'OFFApps', 'DEFApps', 'ShotPoints']
+        num_cols = ['TeamID', 'PlayerID', 'Order', 'PlayerNo', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'OFFApps', 'DEFApps', 'ShotPoints', 'ActionCD1']
         for col in num_cols:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
@@ -32,7 +38,7 @@ def load_all_data():
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
 
-    # --- IDから「名前」を引く辞書等の作成 (既存ロジック維持) ---
+    # --- 以下、既存の辞書作成や期間取得ロジック ---
     p_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNameJ']))
     p_no_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNo']))
 
@@ -54,7 +60,6 @@ def load_all_data():
     df_l['LineupSet'] = df_l.apply(lambda r: {int(r[f'Lineup_{i}']) for i in range(1, 6)}, axis=1)
     df_l['TotalApps_L'] = df_l['OFFApps'] + df_l['DEFApps']
 
-    # --- 期間取得のロジック ---
     period_str = "データ期間不明"
     try:
         df_res = pd.read_csv('table_BLeagueResult_2025.csv')
@@ -66,7 +71,6 @@ def load_all_data():
     except:
         pass
         
-    # 3. 戻り値に df_s を追加
     return df_t, df_p, df_l, df_s, period_str
     
 def draw_shot_chart(player_shots, player_name):
