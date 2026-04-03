@@ -367,9 +367,31 @@ with tab1:
             chart_title = f"{sel_team_name} (チーム全体)"
             target_cmid = 1.0
             
-            st.write(f"### 📊 {sel_team_name} チーム全体統計")
-            st.dataframe(pd.DataFrame([aggregate_stats(df_display, "チーム全体")]).style.format({"FG%": "{:.1f}%"}), use_container_width=True, hide_index=True)
-
+            # --- 📊 チーム全体の攻撃と守備（被シュート）を並べて集計 ---
+            team_stats_list = []
+            
+            # ① 自チームの攻撃
+            team_stats_list.append(aggregate_stats(df_display, "自チーム（攻撃）"))
+            
+            # ② 相手チームの攻撃（＝自チームの被シュート）
+            # 同じ試合(ScheduleKey)における、自チーム以外のショットを抽出
+            opp_shots = df_shot[
+                (df_shot['ScheduleKey'].isin(df_display['ScheduleKey'])) & 
+                (df_shot['TeamID'] != target_team_id)
+            ]
+            team_stats_list.append(aggregate_stats(opp_shots, "相手チーム（守備）"))
+            
+            st.write(f"### 📊 {sel_team_name} チーム統計まとめ")
+            st.dataframe(
+                pd.DataFrame(team_stats_list).style.format({
+                    "FG%": "{:.1f}%", 
+                    "2FG%": "{:.1f}%", 
+                    "3FG%": "{:.1f}%"
+                }), 
+                use_container_width=True, 
+                hide_index=True
+            )
+            
         # --- 3. ショットチャートの描画 (共通処理) ---
         if not df_display.empty:
             fig_shot = draw_shot_chart(df_display, chart_title)
