@@ -7,8 +7,7 @@ import numpy as np
 # 1. ページ全体の基本設定
 st.set_page_config(page_title="B-League Analytics Dash", layout="wide")
 # --- 修正箇所：背景色を薄い木の色（ベージュ系）に設定 ---
-bg_color = "#FDF5E6"  # OldLace (非常に薄いベージュ)
-
+bg_color = "#F5F5F5"
 # --- 2. データの読み込みと前処理（ショットデータ追加版） ---
 @st.cache_data(ttl=3600)
 def load_all_data():
