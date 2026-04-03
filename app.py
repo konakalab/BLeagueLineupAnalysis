@@ -414,7 +414,9 @@ with tab1:
                     'xanchor': 'center',
                     'yanchor': 'top',
                     'font': dict(size=20)
-                }
+                },
+                plot_bgcolor=bg_color,
+                paper_bgcolor=bg_color
             )
 
             fig_shot.update_traces(
