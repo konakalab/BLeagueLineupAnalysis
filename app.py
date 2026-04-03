@@ -77,27 +77,39 @@ def draw_shot_chart(player_shots, player_name):
     if player_shots.empty:
         return go.Figure()
 
-    # --- 1. グリッド集計ロジック ---
-    # グリッドの細かさを設定（数値が大きいほど細かくなる）
-    grid_size = 1.0 
-    player_shots['x_bin'] = (player_shots['RelativeShotX'] / grid_size).round() * grid_size
-    player_shots['y_bin'] = (player_shots['RelativeShotY'] / grid_size).round() * grid_size
+    # --- 1. データのコピーとハニカムグリッド集計ロジック ---
+    df = player_shots.copy()  # 元データを保護するためにコピー
+    
+    size = 0.8  # 六角形のサイズ（密度）の調整用
+    
+    # Y座標をインデックス化
+    df['y_int'] = (df['RelativeShotY'] / (size * 1.5)).round().astype(int)
+    
+    # X座標の計算：Yのインデックスが「奇数」の場合に X を半分（dx/2）ずらす
+    dx = size * np.sqrt(3)
+    is_odd = (df['y_int'] % 2 != 0)
+    
+    df['x_bin'] = np.where(
+        is_odd,
+        (np.floor(df['RelativeShotX'] / dx) + 0.5) * dx,
+        np.round(df['RelativeShotX'] / dx) * dx
+    )
+    df['y_bin'] = df['y_int'] * (size * 1.5)
 
-    # エリアごとに集計（本数と成功数を計算）
-    bin_stats = player_shots.groupby(['x_bin', 'y_bin']).agg(
+    # エリアごとに集計
+    bin_stats = df.groupby(['x_bin', 'y_bin']).agg(
         attempts=('ShotPoints', 'count'),
         made=('ShotPoints', lambda x: (x > 0).sum())
     ).reset_index()
 
     bin_stats['fg_pct'] = (bin_stats['made'] / bin_stats['attempts']) * 100
-    # 本数に応じてマーカーサイズを可変にする（上限を設定）
-    bin_stats['msize'] = bin_stats['attempts'].apply(lambda x: min(x * 5 + 5, 25)) 
+    
+    # マーカーサイズ：試投数が多いほど大きく（最小12, 最大22）
+    bin_stats['msize'] = bin_stats['attempts'].apply(lambda x: min(x * 2 + 12, 22)) 
 
     # --- 2. 描画 ---
     fig = go.Figure()
 
-    # ヒートマップ風マーカーの追加
-    # --- 描画部分の修正 ---
     fig.add_trace(go.Scatter(
         x=bin_stats['x_bin'],
         y=bin_stats['y_bin'],
@@ -110,23 +122,24 @@ def draw_shot_chart(player_shots, player_name):
             showscale=True,
             colorbar=dict(title="FG%", ticksuffix="%"),
             line=dict(width=0.5, color='white'), 
-            cmid=45 
+            cmid=45 # 45%付近を白（中立）にする
         ),
         text=[f"試投: {int(a)}<br>成功: {int(m)}<br>確率: {p:.1f}%" 
               for a, m, p in zip(bin_stats['attempts'], bin_stats['made'], bin_stats['fg_pct'])],
         hoverinfo='text'
-    )) # ← ここで go.Scatter と add_trace の両方のカッコを閉じています
+    ))
 
     # --- 3. コート描画（既存のロジック） ---
     line_color = "#333333"
+    # ゴール付近
     fig.add_shape(type="line", x0=1.2, y0=-0.9, x1=1.2, y1=0.9, line=dict(color="black", width=3))
     fig.add_shape(type="circle", x0=1.575-0.225, y0=-0.225, x1=1.575+0.225, y1=0.225, line=dict(color="orange", width=2))
+    # 制限区域
     fig.add_shape(type="rect", x0=0, y0=-2.45, x1=5.8, y1=2.45, line=dict(color=line_color, width=1.5), layer="below")
-    
-    three_point_path = (
-        "M 0 -6.6 L 2.99 -6.6 A 6.75 6.75 0 0 1 2.99 6.6 L 0 6.6"
-    )
+    # 3Pライン
+    three_point_path = "M 0 -6.6 L 2.99 -6.6 A 6.75 6.75 0 0 1 2.99 6.6 L 0 6.6"
     fig.add_shape(type="path", path=three_point_path, line=dict(color=line_color, width=2.5), layer="below")
+    # コート外枠
     fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2), layer="below")
 
     # レイアウト設定
