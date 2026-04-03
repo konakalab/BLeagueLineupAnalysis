@@ -314,6 +314,18 @@ with tab1:
         height=750, plot_bgcolor='white', hovermode='closest',
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
+
+    for k in sum_values:
+        fig_p.add_trace(go.Scattergl(
+            x=x_range,
+            y=k - x_range, # y = -x + k
+            mode='lines',
+            line=dict(color='black', width=1, dash='dot'),
+            showlegend=False,
+            hoverinfo='skip',
+            opacity=0.3
+        ))
+        
     fig_p.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
     
