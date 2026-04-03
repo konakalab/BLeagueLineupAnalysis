@@ -318,6 +318,12 @@ with tab1:
 
         analysis_mode = "チーム全体" 
         target_cmid = 1.0
+        
+        # --- 1. オンコート判定に使用するカラムの定義 ---
+        # カラム名のスペース（homeLineup_ 1）に注意してリスト作成
+        home_cols = [f'homeLineup_ {i}' for i in range(1, 6)]
+        away_cols = [f'awayLineup_ {i}' for i in range(1, 6)]
+        all_lineup_cols = home_cols + away_cols
 
         if sel_p_shot != "チーム全体":
             # 2. 分析モードの切り替え
@@ -330,26 +336,59 @@ with tab1:
             p_name_only = sel_p_shot.split(" ", 1)[1]
             selected_player_id = int(team_players[team_players['PlayerNameJ'] == p_name_only]['PlayerID'].iloc[0])
             
-            # --- オンコート判定ロジック ---
-            on_court_cols = [c for c in df_shot.columns if 'PlayerID_' in c and c != 'PlayerID']
-            is_on_court = (df_shot[on_court_cols] == selected_player_id).any(axis=1)
+            # --- 3. オンコート判定ロジック ---
+            # 選択選手が10個のカラムのいずれかに含まれている行を抽出
+            # 型不一致を防ぐため、比較前にIDをint/str適切に処理（ここではデータに合わせる）
+            is_on_court = (df_shot[all_lineup_cols] == selected_player_id).any(axis=1)
             df_on_court_all = df_shot[is_on_court].copy()
 
+            # --- 4. 常に3つの集計を3行で作る ---
+            stats_list = []
+            
+            # (1) 選手個人のショット
+            df_personal = df_shot[df_shot['PlayerID'] == selected_player_id].copy()
+            stats_list.append(aggregate_stats(df_personal, "1. 選手個人"))
+            
+            # (2) オンコート時の自チーム全体 (味方全員のシュート)
+            df_own_on = df_on_court_all[df_on_court_all['TeamID'] == target_team_id].copy()
+            stats_list.append(aggregate_stats(df_own_on, "2. 自チーム(オンコート)"))
+            
+            # (3) オンコート時の相手チーム (被シュート)
+            df_opp_on = df_on_court_all[df_on_court_all['TeamID'] != target_team_id].copy()
+            stats_list.append(aggregate_stats(df_opp_on, "3. 相手チーム(被シュート)"))
+
+            # 表の表示
+            st.write(f"### 📊 {p_name_only} 統計まとめ (3行集計)")
+            res_df = pd.DataFrame(stats_list)
+            st.dataframe(
+                res_df.style.format({"FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"}), 
+                use_container_width=True, hide_index=True
+            )
+
+            # チャート表示用データの決定
+            target_cmid = 1.0
             if analysis_mode == "① 選手個人のショット":
-                df_display = df_shot[df_shot['PlayerID'] == selected_player_id].copy()
+                df_display = df_personal
                 chart_title = f"{p_name_only} (個人シュート)"
-                
             elif analysis_mode == "② オンコート時の自チーム全体":
-                df_display = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
+                df_display = df_own_on
                 chart_title = f"{p_name_only} 出場時 (自チーム全体)"
-                
-            elif analysis_mode == "③ オンコート時の相手チーム":
-                df_display = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
+            else:
+                df_display = df_opp_on
                 chart_title = f"{p_name_only} 出場時 (相手の被シュート)"
-                target_cmid = 0.9 
+                target_cmid = 0.9
+
         else:
+            # チーム全体モード時の処理
             df_display = df_shot[df_shot['TeamID'] == target_team_id].copy()
             chart_title = f"{sel_team_name} (チーム全体)"
+            target_cmid = 1.0
+            # チーム全体の場合は3行出す必要がないため、1行のみの集計を表示
+            st.write(f"### 📊 {sel_team_name} 全体統計")
+            st.dataframe(
+                pd.DataFrame([aggregate_stats(df_display, "チーム全体")]).style.format({"FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"}),
+                use_container_width=True, hide_index=True
+            )
 
         # --- 3. 表示処理 (ここに追加しました) ---
         if not df_display.empty:
