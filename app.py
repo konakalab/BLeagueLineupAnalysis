@@ -210,6 +210,45 @@ with tab1:
     fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
     st.plotly_chart(fig_p, use_container_width=True)
 
+    # --- ショット分析セクション ---
+    if not is_league_mode:
+        st.write(f"## 🏀 {sel_team_name} ショット分析")
+        
+        # チーム全体のデータを抽出
+        team_shots = df_shot[df_shot['TeamID'] == target_team_id]
+        
+        # 選手選択（チーム全体か個人か）
+        team_players = df_all_p[df_all_p['TeamID'] == target_team_id].sort_values('PlayerNo')
+        p_options = ["チーム全体"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_players.iterrows()]
+        sel_p_shot = st.selectbox("表示対象を選択", p_options)
+
+        if sel_p_shot == "チーム全体":
+            display_shots = team_shots
+            chart_title = f"{sel_team_name} (チーム全体)"
+        else:
+            p_name_only = sel_p_shot.split(" ", 1)[1]
+            selected_player_id = int(team_players[team_players['PlayerNameJ'] == p_name_only]['PlayerID'].iloc[0])
+            display_shots = team_shots[team_shots['PlayerID'] == selected_player_id]
+            chart_title = p_name_only
+
+        if not display_shots.empty:
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                # 前のステップで作った draw_shot_chart 関数を呼び出し
+                st.plotly_chart(draw_shot_chart(display_shots, chart_title), use_container_width=True)
+            with col2:
+                st.write(f"### {chart_title} の統計")
+                total = len(display_shots)
+                made = len(display_shots[display_shots['ShotPoints'] > 0])
+                fg_pct = (made / total * 100) if total > 0 else 0
+                st.metric("総シュート試投数", f"{total} 本")
+                st.metric("成功数", f"{made} 本")
+                st.metric("成功率 (FG%)", f"{fg_pct:.1f} %")
+        else:
+            st.warning("表示対象のショット位置データが見つかりません。")
+            
+        st.divider()
+        
     # --- テーブル表示 ---
     st.write(f"### {sel_team_name} 選手データ一覧")
     output_p = df_all_p[df_all_p['is_selected']].copy()
