@@ -147,7 +147,7 @@ with tab1:
     output_p = df_all_p[df_all_p['is_selected']].copy()
     
     # 総合評価の計算
-    output_p['総合評価'] = output_p['HensatiOFF'] + output_p['HensatiDEF']
+    output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF'])/2
     output_p['貢献量'] = output_p['総合評価'] * output_p['TotalApps']
     output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
     
@@ -228,13 +228,13 @@ with tab2:
         df_table = df_plot[df_plot['is_top']].copy()
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
         df_table['チーム'] = df_table['TeamID'].map(team_dict)
-        df_table['総合評価'] = df_table['HensatiOFF'] + df_table['HensatiDEF']
+        df_table['総合評価'] = (df_table['HensatiOFF'] + df_table['HensatiDEF'])/2
         # 列順：総合 -> 攻撃 -> 守備
         output_l = df_table[['チーム', 'UnitNames', '合計プレイ数' if '合計プレイ数' in df_table else 'TotalApps_L', '総合評価', 'HensatiOFF', 'HensatiDEF']]
         output_l.columns = ['チーム', '構成ユニット', '合計プレイ数', '総合評価', '攻撃評価', '守備評価']
     else:
         df_table = df_plot[(df_plot['TeamID'] == target_team_id) & (df_plot['LineupSet'].apply(lambda x: target_p_id in x if target_p_id else True))].copy()
-        df_table['総合評価'] = df_table['HensatiOFF'] + df_table['HensatiDEF']
+        df_table['総合評価'] = (df_table['HensatiOFF'] + df_table['HensatiDEF'])/2
         # 列順：総合 -> 攻撃 -> 守備
         output_l = df_table[['UnitNames', 'TotalApps_L', '総合評価', 'HensatiOFF', 'HensatiDEF']]
         output_l.columns = ['構成ユニット', '合計プレイ数', '総合評価', '攻撃評価', '守備評価']
