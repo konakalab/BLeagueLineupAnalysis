@@ -258,12 +258,12 @@ with tab1:
         if not display_shots.empty:
             s = display_shots.copy()
             
-            # --- actionCDListに基づく厳密な判定 ---
-            # 3Pシュート (成功:1, 失敗:2)
+            # ActionCD1を数値型に変換
+            s['ActionCD1'] = pd.to_numeric(s['ActionCD1'], errors='coerce').fillna(0).astype(int)
+            
+            # --- actionCDListに基づく判定 ---
             is_3p = s['ActionCD1'].isin([1, 2])
-            # 2Pシュート (成功:3,4, 失敗:5,6)
             is_2p = s['ActionCD1'].isin([3, 4, 5, 6])
-            # 成功 (1, 3, 4)
             is_made = s['ActionCD1'].isin([1, 3, 4])
             
             # --- 各指標の計算 ---
@@ -276,21 +276,36 @@ with tab1:
             fgm = _3fgm + _2fgm
             fga = _3fga + _2fga
             
+            # --- 成功率(%)の計算関数 ---
+            def calc_pct(m, a):
+                return (m / a * 100) if a > 0 else 0.0
+
             # --- 集計表のデータフレーム作成 ---
             res_df = pd.DataFrame([{
                 "FGM": fgm, 
                 "FGA": fga,
+                "FG%": calc_pct(fgm, fga),
                 "2FGM": _2fgm, 
                 "2FGA": _2fga,
+                "2FG%": calc_pct(_2fgm, _2fga),
                 "3FGM": _3fgm, 
-                "3FGA": _3fga
+                "3FGA": _3fga,
+                "3FG%": calc_pct(_3fgm, _3fga)
             }])
 
             # 1. 統計表の表示
             st.write(f"### {chart_title} シュート統計")
-            st.dataframe(res_df, use_container_width=True, hide_index=True)
+            st.dataframe(
+                res_df.style.format({
+                    "FG%": "{:.1f}%", 
+                    "2FG%": "{:.1f}%", 
+                    "3FG%": "{:.1f}%"
+                }), 
+                use_container_width=True, 
+                hide_index=True
+            )
 
-            # 2. ショットチャートの表示（以前修正した大きな描画設定を使用）
+            # 2. ショットチャートの表示
             st.plotly_chart(draw_shot_chart(display_shots, chart_title), use_container_width=True)
             
         else:
