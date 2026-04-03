@@ -366,7 +366,7 @@ with tab1:
             
             # ③ オンコート時の相手チーム (被シュート)
             df_opp_on = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
-            stats_list.append(aggregate_stats(df_opp_on, "3. 相手チーム(被シュート)"))
+            stats_list.append(aggregate_stats(df_opp_on, "3. 相手チーム(オンコート)"))
         
             # データフレームに変換
             res_df = pd.DataFrame(stats_list)
