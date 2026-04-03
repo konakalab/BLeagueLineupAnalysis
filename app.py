@@ -141,15 +141,47 @@ def draw_shot_chart(player_shots, player_name):
         hoverinfo='text'
     ))
 
-    # --- 3. コート描画（以下、既存のロジックと同じ） ---
+    # --- 3. コート描画（FIBA規格：3Pラインの円弧を厳密に再現） ---
     line_color = "#333333"
-    fig.add_shape(type="line", x0=1.2, y0=-0.9, x1=1.2, y1=0.9, line=dict(color="black", width=3))
-    fig.add_shape(type="circle", x0=1.575-0.225, y0=-0.225, x1=1.575+0.225, y1=0.225, line=dict(color="orange", width=2))
-    fig.add_shape(type="rect", x0=0, y0=-2.45, x1=5.8, y1=2.45, line=dict(color=line_color, width=1.5), layer="below")
-    three_point_path = "M 0 -6.6 L 2.99 -6.6 A 6.75 6.75 0 0 1 2.99 6.6 L 0 6.6"
-    fig.add_shape(type="path", path=three_point_path, line=dict(color=line_color, width=2.5), layer="below")
-    fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2), layer="below")
 
+    # リングの中心座標（エンドラインから1.575m）
+    hoop_x = 1.575
+    hoop_y = 0
+    # 3Pラインの規格
+    three_radius = 6.75
+    side_dist_from_center = 6.6 # サイドライン(7.5m)から0.9m内側
+
+    # 円弧と直線が交わる点のX座標を計算
+    # (x - 1.575)^2 + (6.6)^2 = 6.75^2  => x = 1.575 + sqrt(6.75^2 - 6.6^2)
+    # 計算すると x は約 2.99 になります
+    intersect_x = hoop_x + np.sqrt(three_radius**2 - side_dist_from_center**2)
+
+    # SVGパス命令の構築
+    # M 0 -6.6 : エンドライン左側(コーナー)からスタート
+    # L {intersect_x} -6.6 : 直線部分
+    # A 6.75 6.75 0 0 1 {intersect_x} 6.6 : 
+    #   半径6.75の円弧。最後の '1' (sweep-flag) で外側に膨らませる
+    # L 0 6.6 : エンドライン右側(コーナー)へ直線
+    three_point_path = f"M 0 {-side_dist_from_center} " \
+                       f"L {intersect_x} {-side_dist_from_center} " \
+                       f"A {three_radius} {three_radius} 0 0 1 {intersect_x} {side_dist_from_center} " \
+                       f"L 0 {side_dist_from_center}"
+
+    fig.add_shape(
+        type="path",
+        path=three_point_path,
+        line=dict(color=line_color, width=2.5),
+        layer="below"
+    )
+
+    # --- その他のパーツ（変更なし） ---
+    # ゴール
+    fig.add_shape(type="line", x0=1.2, y0=-0.9, x1=1.2, y1=0.9, line=dict(color="black", width=3))
+    fig.add_shape(type="circle", x0=hoop_x-0.225, y0=-0.225, x1=hoop_x+0.225, y1=0.225, line=dict(color="orange", width=2))
+    # 制限区域
+    fig.add_shape(type="rect", x0=0, y0=-2.45, x1=5.8, y1=2.45, line=dict(color=line_color, width=1.5), layer="below")
+    # 外枠
+    fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2), layer="below")
     fig.update_layout(
         title={
             'text': f"🔥 {player_name} ショット効率マップ",
