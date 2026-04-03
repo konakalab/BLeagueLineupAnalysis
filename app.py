@@ -353,23 +353,28 @@ with tab1:
 
         # --- 3. 表示処理 (ここに追加しました) ---
         if not df_display.empty:
-            # --- 📊 統計テーブルの作成 ---
+            # --- 📊 統計テーブルの作成 (常に3項目集計) ---
             stats_list = []
-            stats_list.append(aggregate_stats(df_display, "表示対象"))
             
-            # オンコート分析時は比較対象（相手/自分）も表示
-            if sel_p_shot != "チーム全体":
-                if analysis_mode == "② オンコート時の自チーム全体":
-                    opp_data = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
-                    stats_list.append(aggregate_stats(opp_data, "相手チーム(被弾)"))
-                elif analysis_mode == "③ オンコート時の相手チーム":
-                    own_data = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
-                    stats_list.insert(0, aggregate_stats(own_data, "自チーム(味方)"))
+            # ① 選手個人のショット
+            df_personal = df_shot[df_shot['PlayerID'] == selected_player_id]
+            stats_list.append(aggregate_stats(df_personal, "1. 選手個人"))
+            
+            # ② オンコート時の自チーム全体 (味方全員)
+            df_own_on = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
+            stats_list.append(aggregate_stats(df_own_on, "2. 自チーム(オンコート)"))
+            
+            # ③ オンコート時の相手チーム (被シュート)
+            df_opp_on = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
+            stats_list.append(aggregate_stats(df_opp_on, "3. 相手チーム(被シュート)"))
         
-            # テーブル表示（色の設定 .background_gradient を削除）
-            st.write(f"### 📊 {chart_title} 成功率統計")
+            # データフレームに変換
+            res_df = pd.DataFrame(stats_list)
+        
+            # テーブル表示（色の設定なし、フォーマットのみ）
+            st.write(f"### 📊 {p_name_only} オンコート統計まとめ")
             st.dataframe(
-                pd.DataFrame(stats_list).style.format({
+                res_df.style.format({
                     "FG%": "{:.1f}%", 
                     "2FG%": "{:.1f}%", 
                     "3FG%": "{:.1f}%"
@@ -379,9 +384,10 @@ with tab1:
             )
         
             # --- 🔥 ショットチャートの描画 ---
+            # チャート自体はラジオボタンで選択している「analysis_mode」に従って描画
             fig_shot = draw_shot_chart(df_display, chart_title)
             
-            # チャート側の色（スケール）の設定
+            # モードに応じた色の基準値設定
             current_cmax = 1.8 if analysis_mode == "① 選手個人のショット" else 1.5
             fig_shot.update_traces(
                 marker=dict(cmid=target_cmid, cmin=0.0, cmax=current_cmax)
