@@ -260,11 +260,11 @@ with tab1:
             
             # --- actionCDListに基づく厳密な判定 ---
             # 3Pシュート (成功:1, 失敗:2)
-            is_3p = s['ActionCD2'].isin([1, 2])
+            is_3p = s['ActionCD1'].isin([1, 2])
             # 2Pシュート (成功:3,4, 失敗:5,6)
-            is_2p = s['ActionCD2'].isin([3, 4, 5, 6])
+            is_2p = s['ActionCD1'].isin([3, 4, 5, 6])
             # 成功 (1, 3, 4)
-            is_made = s['ActionCD2'].isin([1, 3, 4])
+            is_made = s['ActionCD1'].isin([1, 3, 4])
             
             # --- 各指標の計算 ---
             _3fgm = int((is_3p & is_made).sum())
