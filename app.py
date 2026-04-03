@@ -72,7 +72,28 @@ def load_all_data():
         pass
         
     return df_t, df_p, df_l, df_s, period_str
+
+# --- 統計集計用の関数 (再定義) ---
+def aggregate_stats(df_sub, label):
+    # ActionCD1 の定義に基づいてシュート種別を判定 (Bリーグ等の一般的なデータ構造)
+    # 3P成功:1, 3P失敗:2, 2P成功:3,4, 2P失敗:5,6 と仮定
+    is_3p = df_sub['ActionCD1'].isin([1, 2])
+    is_2p = df_sub['ActionCD1'].isin([3, 4, 5, 6])
+    is_made = df_sub['ActionCD1'].isin([1, 3, 4])
     
+    _3fgm, _3fga = int((is_3p & is_made).sum()), int(is_3p.sum())
+    _2fgm, _2fga = int((is_2p & is_made).sum()), int(is_2p.sum())
+    fgm, fga = _3fgm + _2fgm, _3fga + _2fga
+    
+    calc_pct = lambda m, a: (m / a * 100) if a > 0 else 0.0
+    
+    return {
+        "区分": label,
+        "FGM": fgm, "FGA": fga, "FG%": calc_pct(fgm, fga),
+        "2FGM": _2fgm, "2FGA": _2fga, "2FG%": calc_pct(_2fgm, _2fga),
+        "3FGM": _3fgm, "3FGA": _3fga, "3FG%": calc_pct(_3fgm, _3fga)
+    }
+
 def draw_shot_chart(player_shots, player_name):
     if player_shots.empty:
         return go.Figure()
@@ -294,11 +315,10 @@ with tab1:
         team_players = df_all_p[df_all_p['TeamID'] == target_team_id].sort_values('PlayerNo')
         p_options = ["チーム全体"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_players.iterrows()]
         sel_p_shot = st.selectbox("分析対象の選手を選択", p_options)
-    
-        # --- 修正ポイント：analysis_mode の初期化 ---
+
         analysis_mode = "チーム全体" 
         target_cmid = 1.0
-    
+
         if sel_p_shot != "チーム全体":
             # 2. 分析モードの切り替え
             analysis_mode = st.radio(
@@ -314,7 +334,7 @@ with tab1:
             on_court_cols = [c for c in df_shot.columns if 'PlayerID_' in c and c != 'PlayerID']
             is_on_court = (df_shot[on_court_cols] == selected_player_id).any(axis=1)
             df_on_court_all = df_shot[is_on_court].copy()
-    
+
             if analysis_mode == "① 選手個人のショット":
                 df_display = df_shot[df_shot['PlayerID'] == selected_player_id].copy()
                 chart_title = f"{p_name_only} (個人シュート)"
@@ -327,31 +347,45 @@ with tab1:
                 df_display = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
                 chart_title = f"{p_name_only} 出場時 (相手の被シュート)"
                 target_cmid = 0.9 
-    
         else:
-            # チーム全体モード
             df_display = df_shot[df_shot['TeamID'] == target_team_id].copy()
             chart_title = f"{sel_team_name} (チーム全体)"
-    
-        # --- 3. 描画処理 ---
+
+        # --- 3. 表示処理 (ここに追加しました) ---
         if not df_display.empty:
-            fig_shot = draw_shot_chart(df_display, chart_title)
+            # --- 📊 統計テーブルの作成 ---
+            stats_list = []
+            stats_list.append(aggregate_stats(df_display, "表示対象"))
             
-            # 修正：analysis_mode が存在しない場合を考慮した三項演算子
+            # オンコート分析時は比較対象（相手/自分）も表示
+            if sel_p_shot != "チーム全体":
+                if analysis_mode == "② オンコート時の自チーム全体":
+                    opp_data = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
+                    stats_list.append(aggregate_stats(opp_data, "相手チーム(被弾)"))
+                elif analysis_mode == "③ オンコート時の相手チーム":
+                    own_data = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
+                    stats_list.insert(0, aggregate_stats(own_data, "自チーム(味方)"))
+
+            # テーブル表示
+            st.write(f"### 📊 {chart_title} 成功率統計")
+            st.dataframe(
+                pd.DataFrame(stats_list).style.format({
+                    "FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"
+                }).background_gradient(subset=["FG%", "2FG%", "3FG%"], cmap="YlGnBu"), 
+                use_container_width=True, hide_index=True
+            )
+
+            # --- 🔥 ショットチャートの描画 ---
+            fig_shot = draw_shot_chart(df_display, chart_title)
             current_cmax = 1.8 if analysis_mode == "① 選手個人のショット" else 1.5
             
             fig_shot.update_traces(
-                marker=dict(
-                    cmid=target_cmid,
-                    cmin=0.0,
-                    cmax=current_cmax
-                )
+                marker=dict(cmid=target_cmid, cmin=0.0, cmax=current_cmax)
             )
             
             st.plotly_chart(fig_shot, use_container_width=False, config={'displayModeBar': False})
         else:
             st.warning("該当するショットデータが見つかりませんでした。")
-
     # 4. 選手データ一覧テーブル
     st.divider()
     st.write(f"### {sel_team_name} 選手データ一覧")
