@@ -290,14 +290,17 @@ with tab2:
         use_container_width=True,
         hide_index=True,
         on_select="rerun",       # 選択時に再実行
-        selection_mode=["single_row"] # 1行選択
+        selection_mode=["single_row"] # 【ここを修正】リストにする
     )
 
-    # 選択されたユニット名を特定
+    # 選択されたユニット名を特定するためのロジック
     selected_unit = None
-    if event and "selection" in event and len(event["selection"]["rows"]) > 0:
-        selected_row_idx = event["selection"]["rows"][0]
-        selected_unit = output_l.iloc[selected_row_idx]['構成ユニット']
+    if event is not None and "selection" in event:
+        # st.dataframe の戻り値から選択された行のインデックスを取得
+        selected_rows = event["selection"].get("rows", [])
+        if len(selected_rows) > 0:
+            selected_row_idx = selected_rows[0]
+            selected_unit = output_l.iloc[selected_row_idx]['構成ユニット']
 
     # --- 4. グラフ用のグループ分け（選択状態を反映） ---
     def get_display_group(row):
