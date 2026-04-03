@@ -418,26 +418,48 @@ with tab2:
     # --- 3. ラインナップ詳細表の表示 ---
     st.write(f"### {sel_team_name} ラインナップ詳細")
     
-    # フィルタリング処理（チームIDと選手IDで確実に抽出）
-    if target_p_id:
-        df_table = df_plot[
-            (df_plot['TeamID'] == target_team_id) & 
-            (df_plot['LineupSet'].apply(lambda x: target_p_id in x))
-        ].copy()
-    else:
-        df_table = df_plot[df_plot['TeamID'] == target_team_id].copy()
-
-    if not df_table.empty:
-        # データの整形とカラム名の統一
-        output_l = df_table[['UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']].sort_values('TotalApps_L', ascending=False)
-        output_l.columns = ['ラインナップ構成', '合計プレイ数', '攻撃評価', '守備評価']
+    # リーグ全体か特定チームかで表示件数を制御
+    if is_league_mode:
+        n_league_lineups = 50  # リーグ全体時に表示する上位件数
         
-        # 表を幅いっぱいに収める設定
+        # リーグ全体の全ラインナップからプレイ数上位を抽出
+        df_table = df_plot.copy()
+        df_table = df_table.sort_values('TotalApps_L', ascending=False).head(n_league_lineups)
+        
+        # チーム名をマッピングして追加
+        team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
+        df_table['チーム'] = df_table['TeamID'].map(team_dict)
+        
+        st.info(f"💡 {sel_league} 全体の中から、合計プレイ数が多い上位 {n_league_lineups} ラインナップを表示しています。")
+        
+        # カラム構成（チーム名を追加）
+        output_l = df_table[['チーム', 'UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']]
+        output_l.columns = ['チーム', 'ラインナップ構成', '合計プレイ数', '攻撃評価', '守備評価']
+    
+    else:
+        # 特定チームモード（既存のロジック）
+        if target_p_id:
+            df_table = df_plot[
+                (df_plot['TeamID'] == target_team_id) & 
+                (df_plot['LineupSet'].apply(lambda x: target_p_id in x))
+            ].copy()
+        else:
+            df_table = df_plot[df_plot['TeamID'] == target_team_id].copy()
+
+        if not df_table.empty:
+            output_l = df_table[['UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']].sort_values('TotalApps_L', ascending=False)
+            output_l.columns = ['ラインナップ構成', '合計プレイ数', '攻撃評価', '守備評価']
+        else:
+            output_l = pd.DataFrame() # 空のデータフレーム
+
+    # --- 共通のテーブル描画処理 ---
+    if not output_l.empty:
         st.dataframe(
             output_l.style.format({'攻撃評価': '{:.1f}', '守備評価': '{:.1f}'}),
             use_container_width=True,
             hide_index=True,
             column_config={
+                "チーム": st.column_config.TextColumn("チーム", width="small"),
                 "ラインナップ構成": st.column_config.TextColumn("ラインナップ構成", width="large"),
                 "合計プレイ数": st.column_config.NumberColumn("合計プレイ数", width="small"),
                 "攻撃評価": st.column_config.NumberColumn("攻撃評価", width="small"),
