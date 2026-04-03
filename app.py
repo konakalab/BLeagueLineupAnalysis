@@ -570,19 +570,26 @@ with tab2:
         st.divider()
         st.write(f"### 📊 {sel_team_name} 特定ラインナップのショット統計")
         
-        # 1. 分析対象ラインナップの選択（詳細表にあるラインナップから選択）
-        lup_options = output_l['ラインナップ'].tolist()
-        sel_lup_name = st.selectbox("詳細統計を表示するラインナップを選択", lup_options, key="lup_stats_select")
+        # 1. プレイ数の多い順にソートした選択肢を作成
+        # output_l を「合計プレイ数」で降順ソートし、ラインナップ名を取得
+        lup_sorted = output_l.sort_values('合計プレイ数', ascending=False)
+        lup_options = lup_sorted['ラインナップ'].tolist()
         
-        # 選択されたラインナップの情報を取得
+        sel_lup_name = st.selectbox(
+            "詳細統計を表示するラインナップを選択（プレイ数順）", 
+            lup_options, 
+            key="lup_stats_select"
+        )
+        
+        # 2. 選択されたラインナップの情報を取得
         selected_lup_row = df_table[df_table['UnitNames'] == sel_lup_name].iloc[0]
         target_lup_ids = selected_lup_row['LineupSet'] # set型 {id1, id2, ...}
         
-        # 2. ショットデータの抽出 (5人全員が同時にオンコートのシーンを特定)
+        # 3. ショットデータの抽出 (5人全員が同時にオンコートのシーンを特定)
         h_cols = [f'hLup{i}' for i in range(1, 6)]
         a_cols = [f'aLup{i}' for i in range(1, 6)]
         
-        # 5人のIDセットが完全に一致する行を抽出
+        # IDセットの比較で抽出（行ごとに判定）
         is_lup_on_court = df_shot.apply(
             lambda x: (set(x[h_cols]) == target_lup_ids) or (set(x[a_cols]) == target_lup_ids), 
             axis=1
@@ -590,18 +597,17 @@ with tab2:
         df_lup_all_shots = df_shot[is_lup_on_court].copy()
         
         if not df_lup_all_shots.empty:
-            # 3. 統計表の作成
+            # 4. 統計表の作成
             lup_stats_list = []
             
-            # 自チームの攻撃 (そのラインナップの所属チームIDと一致するショット)
+            # 自チームの攻撃
             df_lup_own = df_lup_all_shots[df_lup_all_shots['TeamID'] == selected_lup_row['TeamID']]
             lup_stats_list.append(aggregate_stats(df_lup_own, "ラインナップ（攻撃）"))
             
-            # 相手チームの攻撃 (自チーム以外のショット ＝ 被シュート)
+            # 相手チームの攻撃 (被シュート)
             df_lup_opp = df_lup_all_shots[df_lup_all_shots['TeamID'] != selected_lup_row['TeamID']]
             lup_stats_list.append(aggregate_stats(df_lup_opp, "相手チーム（被弾）"))
             
-            # データフレームとして表示
             st.write(f"#### セット内容: {sel_lup_name}")
             st.dataframe(
                 pd.DataFrame(lup_stats_list).style.format({
