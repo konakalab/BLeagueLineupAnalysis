@@ -104,17 +104,14 @@ def draw_shot_chart(player_shots, player_name):
         marker=dict(
             size=bin_stats['msize'],
             color=bin_stats['fg_pct'],
-            colorscale='RdBu_r', # 赤(高)〜白〜青(低)
+            symbol='hexagon', # ← ここを 'hexagon' に変更
+            colorscale='RdBu_r', 
             showscale=True,
             colorbar=dict(title="FG%", ticksuffix="%"),
-            line=dict(width=1, color='white'),
-            cmid=45 # リーグ平均付近（45%）を白にする設定
+            line=dict(width=0.5, color='white'), # 境界線を細く入れると蜂の巣感が出ます
+            cmid=45 
         ),
-        text=[f"試投: {int(a)}<br>成功: {int(m)}<br>確率: {p:.1f}%" 
-              for a, m, p in zip(bin_stats['attempts'], bin_stats['made'], bin_stats['fg_pct'])],
-        hoverinfo='text',
-        name='Shot Density'
-    ))
+        # ... 以下、textやhoverinfoは同じ
 
     # --- 3. コート描画（既存のロジック） ---
     line_color = "#333333"
