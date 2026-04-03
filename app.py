@@ -121,7 +121,17 @@ def draw_shot_chart(player_shots, player_name):
             symbol='hexagon', 
             colorscale='RdBu_r', 
             showscale=True,
-            colorbar=dict(title="FG%", ticksuffix="%"),
+            # --- ここからカラーバーの調整 ---
+        colorbar=dict(
+            title="FG%", 
+            ticksuffix="%",
+            len=0.5,           # 長さを半分にする（0.3〜0.7くらいで調整してください）
+            lenmode='fraction',
+            y=0.5,             # 垂直方向の中央に配置
+            yanchor='middle',
+            thickness=20       # バーの太さ（お好みで）
+        ),
+        # --- ここまで ---
             line=dict(width=0.5, color='white'), 
             cmid=45 # 45%付近を白（中立）にする
         ),
