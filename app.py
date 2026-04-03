@@ -192,7 +192,7 @@ def draw_shot_chart(player_shots, player_name):
             'y': 0.98, 'x': 0.5, 'xanchor': 'center', 'yanchor': 'top',
             'font': dict(size=24)
         },
-        width=1200, height=850, 
+        width=1200, height=640, 
         xaxis=dict(range=[-0.5, 14.5], visible=False, fixedrange=True, scaleanchor="y", scaleratio=1),
         yaxis=dict(range=[-7.8, 7.8], visible=False, fixedrange=True),
         margin=dict(l=5, r=5, t=60, b=5), 
