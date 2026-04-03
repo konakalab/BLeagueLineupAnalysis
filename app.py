@@ -291,7 +291,7 @@ with tab1:
         df_all_p['is_selected'] = True
         df_all_p['Label'] = ""
         color_map = {sel_league: '#636EFA'}
-        opacity_val = 0.3
+        opacity_val = 0.2
     else:
         st.subheader(f"選手別 評価値分布 ({sel_team_name})")
         df_all_p['is_selected'] = (df_all_p['TeamID'] == target_team_id)
