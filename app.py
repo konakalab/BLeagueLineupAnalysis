@@ -342,7 +342,7 @@ with tab1:
             
             stats_list.append(aggregate_stats(df_personal, "1. 選手個人"))
             stats_list.append(aggregate_stats(df_own_on, "2. 自チーム(オンコート)"))
-            stats_list.append(aggregate_stats(df_opp_on, "3. 相手チーム(被弾)"))
+            stats_list.append(aggregate_stats(df_opp_on, "3. 相手チーム(オンコート)"))
             
             st.write(f"### 📊 {p_name_only} オンコート統計まとめ")
             st.dataframe(pd.DataFrame(stats_list).style.format({"FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"}), use_container_width=True, hide_index=True)
