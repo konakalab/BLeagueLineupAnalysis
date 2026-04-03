@@ -253,12 +253,6 @@ with tab1:
         fig_p.update_traces(textposition='top center', selector=dict(name=sel_team_name))
     fig_p.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
-    # 表示ボタン（ModeBar）を消す設定はここで行います
-    st.plotly_chart(
-        draw_shot_chart(df_own, chart_title), 
-        use_container_width=True, 
-        config={'displayModeBar': False}
-    )
 
     # --- ショット分析セクション ---
     if not is_league_mode:
@@ -339,8 +333,11 @@ with tab1:
             )
 
             # 自チームのショット位置をプロット
-            st.plotly_chart(draw_shot_chart(df_own, chart_title), use_container_width=True)
-            
+            st.plotly_chart(
+                draw_shot_chart(df_own, chart_title), 
+                use_container_width=True,
+                config={'displayModeBar': False} # ツールバーを非表示
+            )
         elif g_id is not None:
             st.warning("該当するショットデータが見つかりませんでした。")
             
