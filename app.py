@@ -692,7 +692,26 @@ with tab2:
                     )
                 )
                 
-                st.plotly_chart(fig_lup_shot, use_container_width=False, config={'displayModeBar': False})
+                st.plotly_chart(
+                    fig_lup_shot, 
+                    use_container_width=False, 
+                    config={
+                        'displayModeBar': True,           # ツールバー自体は有効にする
+                        'modeBarButtonsToRemove': [       # カメラ以外をすべて削除
+                            'zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 
+                            'zoomOut2d', 'autoScale2d', 'resetScale2d', 'hoverClosestCartesian', 
+                            'hoverCompareCartesian', 'toggleSpikelines'
+                        ],
+                        'displaylogo': False,             # Plotlyのロゴを隠す
+                        'toImageButtonOptions': {         # 保存時のファイル設定
+                            'format': 'png',
+                            'filename': f'shot_chart_{sel_team_name}',
+                            'height': 640,
+                            'width': 1200,
+                            'scale': 2                    # 2倍の解像度で保存（高画質）
+                        }
+                    }
+                )
             else:
                 st.info("表示できるショットデータがありません。")
         else:
