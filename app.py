@@ -395,9 +395,17 @@ with tab1:
         # --- 3. ショットチャートの描画 (共通処理) ---
         if not df_display.empty:
             fig_shot = draw_shot_chart(df_display, chart_title)
-            # 期待値の色の基準を調整
-            current_cmax = 1.8 if sel_p_shot != "チーム全体" and "個人" in analysis_mode else 1.5
-            fig_shot.update_traces(marker=dict(cmid=target_cmid, cmax=current_cmax))
+            
+            # 💡 clim (期待値のレンジ) を常に 0.0 〜 1.5 で固定
+            # target_cmid (中間色/白) は、自チーム=1.0、相手=0.9 のままで OK
+            fig_shot.update_traces(
+                marker=dict(
+                    cmin=0.0,    # 期待値の最小（0点）
+                    cmax=1.5,    # 期待値の最大（1.5点：3Pが50%で入る超高効率）
+                    cmid=target_cmid
+                )
+            )
+            
             st.plotly_chart(fig_shot, use_container_width=False)
         else:
             st.warning("表示できるショットデータがありません。")
