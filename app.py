@@ -542,7 +542,7 @@ with tab2:
         lup_hovertemplate = (
             "<b>%{text}</b><br>" +
             "プレイ数: %{customdata}回<br>" +
-            "攻: %{x:+.1f} / 守: %{y:+.1f}" + 
+            "攻: %{x:.1f} / 守: %{y:.1f}" + 
             "<extra></extra>"
         )
         
