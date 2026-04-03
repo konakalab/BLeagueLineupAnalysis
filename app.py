@@ -97,6 +97,7 @@ def draw_shot_chart(player_shots, player_name):
     fig = go.Figure()
 
     # ヒートマップ風マーカーの追加
+    # --- 描画部分の修正 ---
     fig.add_trace(go.Scatter(
         x=bin_stats['x_bin'],
         y=bin_stats['y_bin'],
@@ -104,14 +105,17 @@ def draw_shot_chart(player_shots, player_name):
         marker=dict(
             size=bin_stats['msize'],
             color=bin_stats['fg_pct'],
-            symbol='hexagon', # ← ここを 'hexagon' に変更
+            symbol='hexagon', 
             colorscale='RdBu_r', 
             showscale=True,
             colorbar=dict(title="FG%", ticksuffix="%"),
-            line=dict(width=0.5, color='white'), # 境界線を細く入れると蜂の巣感が出ます
+            line=dict(width=0.5, color='white'), 
             cmid=45 
         ),
-        # ... 以下、textやhoverinfoは同じ
+        text=[f"試投: {int(a)}<br>成功: {int(m)}<br>確率: {p:.1f}%" 
+              for a, m, p in zip(bin_stats['attempts'], bin_stats['made'], bin_stats['fg_pct'])],
+        hoverinfo='text'
+    )) # ← ここで go.Scatter と add_trace の両方のカッコを閉じています
 
     # --- 3. コート描画（既存のロジック） ---
     line_color = "#333333"
