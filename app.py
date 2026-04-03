@@ -13,17 +13,39 @@ def load_all_data():
     df_t = pd.read_csv('table_team.csv')
     df_p = pd.read_csv('table_players.csv')
     df_l = pd.read_csv('table_lineups.csv')
-    # ショットデータの読み込み
     df_s = pd.read_csv('table_shotpos.csv')
     
-    # 前処理
+    # 列名の余計な空白を削除
     for df in [df_t, df_p, df_l, df_s]:
         df.columns = [str(c).strip() for c in df.columns]
         
-    num_cols = ['TeamID', 'PlayerID', 'Order', 'PlayerNo', 'OFFApps', 'DEFApps']
-    for col in num_cols:
+    # 数値変換
+    num_cols_p = ['TeamID', 'PlayerID', 'PlayerNo', 'OFFApps', 'DEFApps']
+    for col in num_cols_p:
         if col in df_p.columns:
             df_p[col] = pd.to_numeric(df_p[col], errors='coerce').fillna(0).astype(int)
+            
+    # --- 重要: ラインナップデータ (df_l) の前処理を復活 ---
+    p_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNameJ']))
+    p_no_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNo']))
+
+    def get_sorted_unit_names(row):
+        p_ids = []
+        for i in range(1, 6):
+            val = row.get(f'Lineup_{i}', 0)
+            if pd.notna(val) and int(val) != 0:
+                p_ids.append(int(val))
+        p_info = []
+        for pid in p_ids:
+            no = p_no_dict.get(pid, 999) 
+            name = p_dict.get(pid, "??")
+            p_info.append((no, name))
+        p_info.sort(key=lambda x: x[0])
+        return " / ".join([x[1] for x in p_info])
+
+    df_l['UnitNames'] = df_l.apply(get_sorted_unit_names, axis=1)
+    df_l['LineupSet'] = df_l.apply(lambda r: {int(r[f'Lineup_{i}']) for i in range(1, 6) if pd.notna(r[f'Lineup_{i}'])}, axis=1)
+    df_l['TotalApps_L'] = df_l['OFFApps'] + df_l['DEFApps']
 
     # 期間取得
     period_str = "データ期間不明"
@@ -43,42 +65,24 @@ df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
 
 # --- コート描画用関数 ---
 def draw_shot_chart(player_shots, player_name):
-    # 成功・失敗のラベル
     player_shots = player_shots.copy()
     player_shots['Result'] = player_shots['ShotPoints'].apply(lambda x: '成功 (Made)' if x > 0 else '失敗 (Missed)')
     
     fig = px.scatter(
-        player_shots,
-        x='RelativeShotX',
-        y='RelativeShotY',
-        color='Result',
-        symbol='Result',
+        player_shots, x='RelativeShotX', y='RelativeShotY', color='Result', symbol='Result',
         color_discrete_map={'成功 (Made)': '#EF553B', '失敗 (Missed)': '#636EFA'},
         symbol_sequence=['circle', 'x'],
         hover_data={'PlayText': True, 'RelativeShotX': False, 'RelativeShotY': False},
         title=f"🏀 {player_name} ショットチャート"
     )
-
-    # --- コート図のライン描画 (FIBA規格) ---
-    # 制限区域 (ペイント)
+    # コートのライン描画
     fig.add_shape(type="rect", x0=-2.45, y0=0, x1=2.45, y1=5.8, line=dict(color="lightgray", width=2), layer="below")
-    # フリースローサークル
     fig.add_shape(type="circle", x0=-1.8, y0=4.0, x1=1.8, y1=7.6, line=dict(color="lightgray", width=2), layer="below")
-    # ゴール・バックボード
-    fig.add_shape(type="line", x0=-0.9, y0=1.2, x1=0.9, y1=1.2, line=dict(color="black", width=3)) # ボード
-    fig.add_shape(type="circle", x0=-0.22, y0=1.375, x1=0.22, y1=1.815, line=dict(color="orange", width=2)) # リング
-    # 3Pライン
-    fig.add_shape(type="path", 
-                  path="M -6.6 0 L -6.6 2.8 A 6.75 6.75 0 0 1 6.6 2.8 L 6.6 0", 
-                  line=dict(color="lightgray", width=2), layer="below")
+    fig.add_shape(type="line", x0=-0.9, y0=1.2, x1=0.9, y1=1.2, line=dict(color="black", width=3))
+    fig.add_shape(type="circle", x0=-0.22, y0=1.375, x1=0.22, y1=1.815, line=dict(color="orange", width=2))
+    fig.add_shape(type="path", path="M -6.6 0 L -6.6 2.8 A 6.75 6.75 0 0 1 6.6 2.8 L 6.6 0", line=dict(color="lightgray", width=2), layer="below")
 
-    fig.update_layout(
-        width=700, height=600,
-        xaxis=dict(range=[-8, 8], title="", showgrid=False, zeroline=False, visible=False),
-        yaxis=dict(range=[-1, 14], title="", showgrid=False, zeroline=False, visible=False),
-        plot_bgcolor='white',
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
-    )
+    fig.update_layout(width=700, height=600, xaxis=dict(range=[-8, 8], visible=False), yaxis=dict(range=[-1, 14], visible=False), plot_bgcolor='white', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
     return fig
 
 # 3. サイドバー
@@ -102,7 +106,7 @@ with tab1:
     df_all_p = df_player.copy()
     df_all_p['TotalApps'] = df_all_p['OFFApps'] + df_all_p['DEFApps']
     
-    # チームが選択されている場合、ショットチャート用の選手選択を出す
+    # ショットチャート用選手選択
     selected_player_id = None
     if target_team_id:
         team_players = df_all_p[df_all_p['TeamID'] == target_team_id].sort_values('PlayerNo')
@@ -117,92 +121,40 @@ with tab1:
     df_all_p['MarkerSize'] = np.sqrt(df_all_p['TotalApps'] + 1)
     if is_league_mode:
         df_all_p['DisplayGroup'], df_all_p['is_selected'], df_all_p['Label'] = sel_league, True, ""
-        color_map, opacity_val = {sel_league: '#636EFA'}, 0.3
+        color_map = {sel_league: '#636EFA'}
     else:
         df_all_p['is_selected'] = (df_all_p['TeamID'] == target_team_id)
         df_all_p['DisplayGroup'] = df_all_p['is_selected'].map({True: sel_team_name, False: 'その他'})
         df_all_p['Label'] = df_all_p.apply(lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1)
         color_map = {sel_team_name: '#EF553B', 'その他': '#E5ECF6'}
         df_all_p = df_all_p.sort_values('is_selected')
-        opacity_val = 0.3
 
-    fig_p = px.scatter(
-        df_all_p, x='HensatiOFF', y='HensatiDEF', color='DisplayGroup', size='MarkerSize', text='Label', hover_name='PlayerNameJ',
-        color_discrete_map=color_map, height=600, labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価'},
-        opacity=opacity_val if is_league_mode else None
-    )
+    fig_p = px.scatter(df_all_p, x='HensatiOFF', y='HensatiDEF', color='DisplayGroup', size='MarkerSize', text='Label', hover_name='PlayerNameJ', color_discrete_map=color_map, height=600)
     fig_p.add_hline(y=0, line_dash="dot", line_color="gray"); fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
     fig_p.update_layout(plot_bgcolor='white', xaxis=dict(range=[-30, 30]), yaxis=dict(range=[-30, 30], scaleanchor="x", scaleratio=1))
     st.plotly_chart(fig_p, use_container_width=True)
 
-    # ショットチャートの表示
+    # ショットチャート表示
     if selected_player_id:
         p_shots = df_shot[df_shot['PlayerID'] == selected_player_id]
         if not p_shots.empty:
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                st.plotly_chart(draw_shot_chart(p_shots, sel_p_chart), use_container_width=True)
-            with col2:
+            c1, c2 = st.columns([2, 1])
+            with c1: st.plotly_chart(draw_shot_chart(p_shots, sel_p_chart), use_container_width=True)
+            with c2:
                 st.write("### シュート統計")
-                total = len(p_shots)
-                made = len(p_shots[p_shots['ShotPoints'] > 0])
-                fg_pct = (made / total * 100) if total > 0 else 0
-                st.metric("総シュート数", f"{total} 本")
-                st.metric("成功数", f"{made} 本")
-                st.metric("成功率 (FG%)", f"{fg_pct:.1f} %")
-        else:
-            st.warning("この選手のショットデータが見つかりません。")
+                total = len(p_shots); made = len(p_shots[p_shots['ShotPoints'] > 0])
+                st.metric("総シュート数", f"{total} 本"); st.metric("成功数", f"{made} 本"); st.metric("成功率", f"{(made/total*100):.1f} %")
+        else: st.warning("ショットデータがありません")
 
-    # --- テーブル表示 ---
+    # テーブル表示
     st.write(f"### {sel_team_name} 選手データ一覧")
-    
-    # 選択されたチーム（またはリーグ全体）の選手のみを抽出
     output_p = df_all_p[df_all_p['is_selected']].copy()
-    
     if not output_p.empty:
-        # 必要な列の計算
         output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
         output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
         output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
-        
-        # 表示する列のリストを動的に作成
-        if is_league_mode:
-            team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
-            output_p['チーム'] = output_p['TeamID'].map(team_dict)
-            cols = ['チーム', 'PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
-        else:
-            cols = ['PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
-        
-        # リネーム辞書
-        rename_dict = {
-            'PlayerNo': '背番号',
-            'PlayerNameJ': '選手名',
-            'TotalApps': '合計プレイ数',
-            'HensatiOFF': '攻撃評価',
-            'HensatiDEF': '守備評価'
-        }
-        
-        # 存在する列だけを抽出してリネーム
-        res_p = output_p[cols].rename(columns=rename_dict).sort_values('合計プレイ数', ascending=False)
-
-        st.dataframe(
-            res_p.style.format({
-                '合計プレイ数': '{:d}', 
-                '貢献量': '{:,.0f}', 
-                '攻撃評価': '{:.1f}', 
-                '守備評価': '{:.1f}', 
-                '総合評価': '{:.1f}'
-            }), 
-            use_container_width=True, 
-            hide_index=True,
-            column_config={
-                "公式サイト": st.column_config.LinkColumn("公式", display_text="↗", width="small"),
-                "背番号": st.column_config.NumberColumn(width="small"),
-                "総合評価": st.column_config.NumberColumn(help="(攻撃評価 + 守備評価) / 2")
-            }
-        )
-    else:
-        st.info("表示できる選手データがありません。")
+        cols = (['TeamID'] if is_league_mode else []) + ['PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
+        st.dataframe(output_p[cols], use_container_width=True, hide_index=True)
 
 # --- タブ2: ラインナップ分析 ---
 with tab2:
