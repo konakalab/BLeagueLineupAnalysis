@@ -324,22 +324,53 @@ with tab1:
     df_all_p['MarkerSize'] = np.sqrt(df_all_p['TotalApps'] + 1)
     is_league_mode = (target_team_id is None)
 
+    # --- 1. 選手選択（URL反映） ---
+    target_p_id = None
+    if not is_league_mode:
+        st.subheader(f"選手別 評価値分布 ({sel_team_name})")
+        team_p = df_all_p[df_all_p['TeamID'] == target_team_id].sort_values('PlayerNo')
+        p_options = ["指定なし"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_p.iterrows()]
+        
+        # URLから初期インデックス計算
+        initial_p_idx = 0
+        if 'default_player_id' in locals() and default_player_id:
+            matched = team_p[team_p['PlayerID'] == default_player_id]
+            if not matched.empty:
+                p_label = f"{int(matched.iloc[0]['PlayerNo'])} {matched.iloc[0]['PlayerNameJ']}"
+                if p_label in p_options: initial_p_idx = p_options.index(p_label)
+
+        sel_p = st.selectbox("強調表示する選手を選択", p_options, index=initial_p_idx)
+        
+        if sel_p != "指定なし":
+            target_p_id = int(team_p[team_p['PlayerNameJ'] == sel_p.split(" ", 1)[1]]['PlayerID'].iloc[0])
+            st.query_params["player_id"] = target_p_id
+        else:
+            if "player_id" in st.query_params: del st.query_params["player_id"]
+    else:
+        st.subheader(f"リーグ全体 選手評価分布 ({sel_league})")
+        if "player_id" in st.query_params: del st.query_params["player_id"]
+
     # 1. 選手評価分布のデータ準備
     if is_league_mode:
-        st.subheader(f"リーグ全体 選手評価分布 ({sel_league})")
         df_all_p['DisplayGroup'] = sel_league
         df_all_p['is_selected'] = True
         df_all_p['Label'] = ""
         color_map = {sel_league: '#636EFA'}
         opacity_val = 0.2
     else:
-        st.subheader(f"選手別 評価値分布 ({sel_team_name})")
+        # 注目選手を別グループにする
+        def get_group(row):
+            if target_p_id and row['PlayerID'] == target_p_id: return "注目選手"
+            return sel_team_name if row['TeamID'] == target_team_id else "その他"
+        
+        df_all_p['DisplayGroup'] = df_all_p.apply(get_group, axis=1)
         df_all_p['is_selected'] = (df_all_p['TeamID'] == target_team_id)
-        df_all_p['DisplayGroup'] = df_all_p['is_selected'].map({True: sel_team_name, False: 'その他'})
         df_all_p['Label'] = df_all_p.apply(lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1)
-        color_map = {sel_team_name: '#EF553B', 'その他': '#E5ECF6'}
-        df_all_p = df_all_p.sort_values('is_selected')
-        # 選択チームを前面に出すための不透明度設定
+        color_map = {sel_team_name: '#EF553B', 'その他': '#E5ECF6', '注目選手': '#19D3F3'}
+        
+        # 重なり順：その他(0) < 自チーム(1) < 注目(2)
+        df_all_p['sort_order'] = df_all_p['DisplayGroup'].map({'その他': 0, sel_team_name: 1, '注目選手': 2})
+        df_all_p = df_all_p.sort_values('sort_order')
         opacity_val = 0.4 
 
     # 2. 選手評価散布図の作成
@@ -348,6 +379,14 @@ with tab1:
         hover_data={'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 'TotalApps': True, 'DisplayGroup': False, 'MarkerSize': False, 'Label': False},
         color_discrete_map=color_map, labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計プレイ数'}
     )
+
+    # --- 注目選手への強調線を追加 ---
+    if target_p_id:
+        p_row = df_all_p[df_all_p['PlayerID'] == target_p_id]
+        if not p_row.empty:
+            p_off, p_def = p_row['HensatiOFF'].iloc[0], p_row['HensatiDEF'].iloc[0]
+            fig_p.add_vline(x=p_off, line_dash="dash", line_color="#19D3F3", line_width=2)
+            fig_p.add_hline(y=p_def, line_dash="dash", line_color="#19D3F3", line_width=2)
 
     fig_p.update_layout(
         title={'text': f"<b>{sel_team_name}</b> 選手評価分布<br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 'x': 0.5, 'y': 0.98, 'xanchor': 'center', 'yanchor': 'top'},
@@ -372,7 +411,6 @@ with tab1:
     fig_p.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
     
-    # 散布図の表示
     st.plotly_chart(fig_p, use_container_width=True)
 
     # --- Tab 1 内: ショット分析セクション ---
