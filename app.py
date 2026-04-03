@@ -226,6 +226,7 @@ with tab1:
 
     # --- ショット分析セクション ---
     if not is_league_mode:
+        st.divider()
         st.write(f"## 🏀 {sel_team_name} ショット分析")
         
         # チーム全体のデータを抽出
@@ -246,18 +247,20 @@ with tab1:
             chart_title = p_name_only
 
         if not display_shots.empty:
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                # 前のステップで作った draw_shot_chart 関数を呼び出し
-                st.plotly_chart(draw_shot_chart(display_shots, chart_title), use_container_width=True)
-            with col2:
-                st.write(f"### {chart_title} の統計")
-                total = len(display_shots)
-                made = len(display_shots[display_shots['ShotPoints'] > 0])
-                fg_pct = (made / total * 100) if total > 0 else 0
-                st.metric("総シュート試投数", f"{total} 本")
-                st.metric("成功数", f"{made} 本")
-                st.metric("成功率 (FG%)", f"{fg_pct:.1f} %")
+            # 1. 統計数値を上に配置（横並びのメトリクス）
+            total = len(display_shots)
+            made = len(display_shots[display_shots['ShotPoints'] > 0])
+            fg_pct = (made / total * 100) if total > 0 else 0
+            
+            m1, m2, m3 = st.columns(3)
+            m1.metric("総シュート試投数", f"{total} 本")
+            m2.metric("成功数", f"{made} 本")
+            m3.metric("成功率 (FG%)", f"{fg_pct:.1f} %")
+
+            # 2. ショットチャートを下に配置（大きく表示）
+            # draw_shot_chart関数の内部でwidth=1100などに設定するとより効果的です
+            st.plotly_chart(draw_shot_chart(display_shots, chart_title), use_container_width=True)
+            
         else:
             st.warning("表示対象のショット位置データが見つかりません。")
             
