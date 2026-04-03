@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go  # ← これが抜けていたためエラーになっています
+import plotly.graph_objects as go
 import numpy as np
 
 # 1. ページ全体の基本設定
@@ -14,7 +14,7 @@ def load_all_data():
     df_p = pd.read_csv('table_players.csv')
     df_l = pd.read_csv('table_lineups.csv')
     
-    # 前処理（数値変換など）
+    # 前処理（列名のトリミングと数値変換）
     for df in [df_t, df_p, df_l]:
         df.columns = [str(c).strip() for c in df.columns]
         num_cols = ['TeamID', 'PlayerID', 'Order', 'PlayerNo', 'Lineup_1', 'Lineup_2', 'Lineup_3', 'Lineup_4', 'Lineup_5', 'OFFApps', 'DEFApps']
@@ -25,39 +25,21 @@ def load_all_data():
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0).round(1)
 
-    # --- IDから「名前」を引く辞書と、「背番号」を引く辞書を作成 ---
+    # IDから名前と背番号を引く辞書
     p_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNameJ']))
     p_no_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNo']))
 
-    # --- ラインナップ内の選手名を背番号順に並び替えて結合する関数 ---
+    # ユニット名生成（背番号順にソートして結合）
     def get_sorted_unit_names(row):
-        p_ids = []
-        # ここで 1番目から5番目の PlayerID をリストに格納
-        for i in range(1, 6):
-            val = row[f'Lineup_{i}']
-            if pd.notna(val) and int(val) != 0:
-                p_ids.append(int(val))
-        
-        # (背番号, 名前) のタプルリストを作成
-        p_info = []
-        for pid in p_ids:
-            no = p_no_dict.get(pid, 999) # 背番号がない場合は末尾へ
-            name = p_dict.get(pid, "??")
-            p_info.append((no, name))
-        
-        # 背番号(x[0])で昇順ソート
-        p_info.sort(key=lambda x: x[0])
-        
-        # 名前だけを結合（ここが閉じ括弧不足になりやすい箇所です）
+        p_ids = [int(row[f'Lineup_{i}']) for i in range(1, 6) if pd.notna(row[f'Lineup_{i}']) and int(row[f'Lineup_{i}']) != 0]
+        p_info = sorted([(p_no_dict.get(pid, 999), p_dict.get(pid, "??")) for pid in p_ids], key=lambda x: x[0])
         return " / ".join([x[1] for x in p_info])
 
-    # UnitNames の作成に適用
     df_l['UnitNames'] = df_l.apply(get_sorted_unit_names, axis=1)
-    
     df_l['LineupSet'] = df_l.apply(lambda r: {int(r[f'Lineup_{i}']) for i in range(1, 6)}, axis=1)
     df_l['TotalApps_L'] = df_l['OFFApps'] + df_l['DEFApps']
 
-    # --- 期間取得のロジック ---
+    # 期間取得
     period_str = "データ期間不明"
     try:
         df_res = pd.read_csv('table_BLeagueResult_2025.csv')
@@ -75,319 +57,132 @@ df_team, df_player, df_lineup, analysis_period = load_all_data()
 
 # 3. サイドバーのフィルター
 st.sidebar.header("検索フィルター")
-
-# リーグ選択 (CSVの登場順を維持)
 list_league = list(dict.fromkeys(df_team['League']))
 sel_league = st.sidebar.selectbox("リーグ選択", list_league)
 
-# --- チーム名の表示順を 'Order' カラムで厳密に制御 ---
 teams_in_league = df_team[df_team['League'] == sel_league].copy()
-
-if 'Order' in teams_in_league.columns:
-    teams_sorted = teams_in_league.sort_values(by='Order', ascending=True)
-else:
-    teams_sorted = teams_in_league.sort_values(by='TeamID', ascending=True)
-
-# 選択肢に「リーグ全体」を先頭に追加
+teams_sorted = teams_in_league.sort_values(by='Order' if 'Order' in teams_in_league.columns else 'TeamID')
 list_teams = ["リーグ全体"] + teams_sorted['Team'].tolist()
 sel_team_name = st.sidebar.selectbox("チーム選択", list_teams)
 
-# 選択されたチームのIDを取得（リーグ全体の場合は None）
-if sel_team_name == "リーグ全体":
-    target_team_id = None
-else:
-    target_team_id = int(teams_sorted[teams_sorted['Team'] == sel_team_name]['TeamID'].iloc[0])
-
+target_team_id = None if sel_team_name == "リーグ全体" else int(teams_sorted[teams_sorted['Team'] == sel_team_name]['TeamID'].iloc[0])
 
 # 4. メインタイトル
-st.title(f"🏀 Bリーグ選手評価：{sel_team_name} ")
+st.title(f"🏀 Bリーグ分析：{sel_team_name}")
 st.info(f"📅 分析対象期間：{analysis_period}")
 
-with st.expander("💡 この分析ツールの使い方はこちら"):
-    st.write("""
-    1. 左側のサイドバーでリーグとチームを選択してください。
-    2. 各グラフのドットにマウスを合わせると詳細データが表示されます。
-    3. ラインナップ分析では、特定の選手を強調して表示できます。
-    """)
-st.caption(f"Developed by [@konakalab](https://x.com/konakalab) | 📅 データ更新：{analysis_period}")
-
-
-tab1, tab2, tab3 = st.tabs(["選手分析", "ラインナップ分析","評価方法の概要"])
+tab1, tab2, tab3 = st.tabs(["選手分析", "ラインナップ分析", "評価方法の概要"])
 
 # --- タブ1: 選手分析 ---
 with tab1:
-    # --- データの準備 ---
     df_all_p = df_player.copy()
     df_all_p['TotalApps'] = df_all_p['OFFApps'] + df_all_p['DEFApps']
-    df_all_p['MarkerSize'] = np.sqrt(df_all_p['TotalApps'] + 1)
-
-    # --- モード判定（リーグ全体 or 特定チーム） ---
     is_league_mode = (target_team_id is None)
 
     if is_league_mode:
         st.subheader(f"リーグ全体 選手評価分布 ({sel_league})")
         df_all_p['DisplayGroup'] = sel_league
         df_all_p['is_selected'] = True
-        df_all_p['Label'] = "" # リーグ全体ではラベル非表示（密集回避）
         color_map = {sel_league: '#636EFA'}
-        opacity_val = 0.3
     else:
         st.subheader(f"選手別 評価値分布 ({sel_team_name})")
         df_all_p['is_selected'] = (df_all_p['TeamID'] == target_team_id)
         df_all_p['DisplayGroup'] = df_all_p['is_selected'].map({True: sel_team_name, False: 'その他'})
-        # 自チームの背番号のみ表示
-        df_all_p['Label'] = df_all_p.apply(
-            lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1
-        )
         color_map = {sel_team_name: '#EF553B', 'その他': '#E5ECF6'}
-        # 描画順を制御（自チームを最前面へ）
         df_all_p = df_all_p.sort_values('is_selected')
-        opacity_val = df_all_p['is_selected'].map({True: 0.15, False: 0.3})
 
-    # --- グラフ描画 ---
+    # グラフ描画
     fig_p = px.scatter(
-        df_all_p, x='HensatiOFF', y='HensatiDEF', 
-        color='DisplayGroup', 
-        size='MarkerSize',
-        text='Label', 
-        hover_name='PlayerNameJ',
-        hover_data={
-            'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 
-            'TotalApps': True, 'DisplayGroup': False, 
-            'MarkerSize': False, 'Label': False
-        },
-        color_discrete_map=color_map,
-        labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計プレイ数'},
-        opacity=opacity_val if is_league_mode else None # モードに応じて不透明度指定を切り替え
+        df_all_p, x='HensatiOFF', y='HensatiDEF', color='DisplayGroup',
+        size=np.sqrt(df_all_p['TotalApps'] + 1), hover_name='PlayerNameJ',
+        hover_data={'TotalApps': True, 'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 'DisplayGroup': False},
+        color_discrete_map=color_map, opacity=0.4 if is_league_mode else None
     )
-
-    # 既存の凡例・スパイクライン等のレイアウト設定を適用
-    fig_p.update_layout(
-        title={
-            'text': (
-                f"<b>{sel_team_name}</b> 選手評価分布<br>"
-                f"<span style='font-size:12px; color:gray;'>期間: {analysis_period}</span> "
-                f"<span style='font-size:12px; color:gray;'>点サイズ: 合計プレイ数 / ラベル: 背番号</span>"
-            ),
-            'x': 0.5,
-            'y': 0.98,          # 3行になるので少し上に寄せる
-            'xanchor': 'center',
-            'yanchor': 'top'
-        },
-        # --- マージンの調整 ---
-        margin=dict(l=20, r=20, t=100, b=100), # 【修正】t（上部）を 20 から 100 に増やしました
-        xaxis=dict(
-            range=[-30, 30], title="攻撃評価", gridcolor='lightgray',
-            showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"
-        ),
-        yaxis=dict(
-            range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1,
-            showspikes=True, spikecolor="gray", spikethickness=1, spikedash="dot", spikemode="across"
-        ),
-        height=750,
-        plot_bgcolor='white', hovermode='closest',
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
-    )
-    
-    if not is_league_mode:
-        fig_p.update_traces(textposition='top center', selector=dict(name=sel_team_name))
-
+    fig_p.update_layout(xaxis=dict(range=[-30, 30], title="攻撃評価"), yaxis=dict(range=[-30, 30], title="守備評価", scaleanchor="x"), height=700, plot_bgcolor='white')
     fig_p.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
-    
     st.plotly_chart(fig_p, use_container_width=True)
 
-    # --- テーブル表示 ---
-    st.write(f"### {sel_team_name} 選手データ一覧")
+    # 選手テーブル
+    output_p = df_all_p[df_all_p['is_selected']].copy()
+    output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
+    output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
     
+    # リーグ全体時はチーム名を表示
+    cols = (['TeamID', 'PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF'] 
+            if is_league_mode else ['PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF'])
+    
+    res_p = output_p[cols].sort_values('TotalApps', ascending=False)
     if is_league_mode:
-        # 1. 必要な列を抽出
-        output_p = df_all_p[['TeamID', 'PlayerID', 'PlayerNo', 'PlayerNameJ', 'TotalApps', 'HensatiOFF', 'HensatiDEF']].copy()
-        
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
-        output_p['チーム'] = output_p['TeamID'].map(team_dict)
-        output_p = output_p.dropna(subset=['チーム'])
-        
-        output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
-        
-        # 2. 【重要】リンク用のURL列を動的に作成
-        output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
-        
-        # 列の並べ替え（選手名の次に公式サイトを配置）
-        output_p = output_p[['チーム', 'PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF']]
-        output_p.columns = ['チーム', '背番号', '選手名', '公式サイト', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
-        
-        output_p = output_p.sort_values('合計プレイ数', ascending=False)
-    else:
-        # 特定チームモード
-        df_tp = df_all_p[df_all_p['is_selected']].copy()
-        df_tp['貢献量'] = (df_tp['HensatiOFF'] + df_tp['HensatiDEF']) * df_tp['TotalApps']
-        
-        # リンク用のURL列を作成
-        df_tp['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + df_tp['PlayerID'].astype(str)
-        
-        output_p = df_tp[['PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', 'HensatiOFF', 'HensatiDEF']]
-        output_p.columns = ['背番号', '選手名', '公式サイト', '合計プレイ数', '貢献量', '攻撃評価', '守備評価']
-        output_p = output_p.sort_values('合計プレイ数', ascending=False)
-
-    # 3. Streamlit Dataframeの設定
-    st.dataframe(
-        output_p.style.format({
-            '合計プレイ数': '{:d}',
-            '貢献量': '{:,.0f}', 
-            '攻撃評価': '{:.1f}', 
-            '守備評価': '{:.1f}'
-        }), 
-        use_container_width=True, 
-        hide_index=True,
-        column_config={
-            # 「公式サイト」列をリンク形式にし、アイコン（↗）を表示させる
-            "公式サイト": st.column_config.LinkColumn(
-                "公式", 
-                display_text="↗",  # ここに外部リンク風のアイコンを指定
-                width="small",
-                help="B.LEAGUE公式サイトの選手プロフィールを開きます"
-            ),
-            "背番号": st.column_config.NumberColumn(width="small"),
-            "選手名": st.column_config.TextColumn(width="medium"),
-        }
-    )
+        res_p['TeamID'] = res_p['TeamID'].map(team_dict)
+        res_p.rename(columns={'TeamID': 'チーム'}, inplace=True)
     
+    res_p.columns = [c.replace('PlayerNo','背番号').replace('PlayerNameJ','選手名').replace('TotalApps','合計プレイ数').replace('HensatiOFF','攻撃評価').replace('HensatiDEF','守備評価') for c in res_p.columns]
 
+    st.dataframe(res_p, use_container_width=True, hide_index=True, column_config={"公式サイト": st.column_config.LinkColumn("公式", display_text="↗")})
 
+# --- タブ2: ラインナップ分析 ---
 with tab2:
-    # --- 1. データの準備 ---
     n_league_lineups = 50
     df_plot = df_lineup[['TeamID', 'HensatiOFF', 'HensatiDEF', 'TotalApps_L', 'UnitNames', 'LineupSet']].copy()
     is_league_mode = (target_team_id is None)
 
-    # --- 2. 下部の表を先に定義（選択状態を取得するため） ---
-    # 表示用データの作成
+    # 注目選手選択（特定チーム時）
+    target_p_id = None
+    if not is_league_mode:
+        team_p = df_player[df_player['TeamID'] == target_team_id].sort_values('PlayerNo')
+        p_options = ["指定なし"] + [f"{int(r['PlayerNo'])} {r['PlayerNameJ']}" for _, r in team_p.iterrows()]
+        sel_p = st.selectbox("強調表示する選手を選択", p_options)
+        if sel_p != "指定なし":
+            target_p_id = int(team_p[team_p['PlayerNameJ'] == sel_p.split(" ", 1)[1]]['PlayerID'].iloc[0])
+
+    # グループ分け
     if is_league_mode:
-        top_indices = df_plot.sort_values('TotalApps_L', ascending=False).head(n_league_lineups).index
-        df_table = df_plot.loc[top_indices].copy()
-        team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
-        df_table['チーム'] = df_table['TeamID'].map(team_dict)
-        output_l = df_table[['チーム', 'UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']]
-        output_l.columns = ['チーム', '構成ユニット', '合計プレイ数', '攻撃評価', '守備評価']
+        top_idx = df_plot.sort_values('TotalApps_L', ascending=False).head(n_league_lineups).index
+        df_plot['Group'] = df_plot.index.isin(top_idx).map({True: f"上位{n_league_lineups}件", False: "その他"})
+        configs = [{"name": "その他", "color": "#E5ECF6", "opacity": 0.1}, {"name": f"上位{n_league_lineups}件", "color": "#636EFA", "opacity": 0.8}]
     else:
-        # 特定チームモード
-        if target_p_id:
-            df_table = df_plot[(df_plot['TeamID'] == target_team_id) & (df_plot['LineupSet'].apply(lambda x: target_p_id in x))].copy()
-        else:
-            df_table = df_plot[df_plot['TeamID'] == target_team_id].copy()
-        output_l = df_table[['UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']].sort_values('合計プレイ数', ascending=False)
-        output_l.columns = ['構成ユニット', '合計プレイ数', '攻撃評価', '守備評価']
+        def get_g(r):
+            if target_p_id and target_p_id in r['LineupSet']: return "注目選手"
+            return sel_team_name if r['TeamID'] == target_team_id else "その他"
+        df_plot['Group'] = df_plot.apply(get_g, axis=1)
+        configs = [{"name": "その他", "color": "#E5ECF6", "opacity": 0.15}, {"name": sel_team_name, "color": "#EF553B", "opacity": 0.4}, {"name": "注目選手", "color": "#19D3F3", "opacity": 0.8}]
 
-    # --- 3. 【重要】表の表示と選択の取得 ---
-    st.write(f"### {sel_team_name} ラインナップ詳細")
-    if is_league_mode:
-        st.info(f"💡 上位 {n_league_lineups} 件を表示中。行をクリックすると上のグラフで強調されます。")
-    
-    # 選択機能付きデータフレーム
-    event = st.dataframe(
-        output_l.style.format({'攻撃評価': '{:.1f}', '守備評価': '{:.1f}'}),
-        use_container_width=True,
-        hide_index=True,
-        on_select="rerun",       # 選択時に再実行
-        selection_mode=["single_row"] # 【ここを修正】リストにする
-    )
-
-    # 選択されたユニット名を特定するためのロジック
-    selected_unit = None
-    if event is not None and "selection" in event:
-        # st.dataframe の戻り値から選択された行のインデックスを取得
-        selected_rows = event["selection"].get("rows", [])
-        if len(selected_rows) > 0:
-            selected_row_idx = selected_rows[0]
-            selected_unit = output_l.iloc[selected_row_idx]['構成ユニット']
-
-    # --- 4. グラフ用のグループ分け（選択状態を反映） ---
-    def get_display_group(row):
-        if row['UnitNames'] == selected_unit:
-            return "選択中"
-        if is_league_mode:
-            return f"上位{n_league_lineups}件" if row['UnitNames'] in output_l['構成ユニット'].values else "その他"
-        else:
-            if target_p_id and target_p_id in row['LineupSet']:
-                return "注目選手"
-            return sel_team_name if row['TeamID'] == target_team_id else "その他"
-
-    df_plot['DisplayGroup'] = df_plot.apply(get_display_group, axis=1)
-
-    # --- 5. グラフ描画 ---
+    # グラフ
     fig_l = go.Figure()
-    
-    # 色設定（「選択中」を最優先で追加）
-    base_configs = []
-    if is_league_mode:
-        base_configs = [
-            {"name": "その他", "color": "#E5ECF6", "opacity": 0.1},
-            {"name": f"上位{n_league_lineups}件", "color": "#636EFA", "opacity": 0.6}
-        ]
-    else:
-        base_configs = [
-            {"name": "その他", "color": "#E5ECF6", "opacity": 0.15},
-            {"name": sel_team_name, "color": "#EF553B", "opacity": 0.4},
-            {"name": "注目選手", "color": "#19D3F3", "opacity": 0.7}
-        ]
-    # 「選択中」の設定を末尾（最前面）に追加
-    base_configs.append({"name": "選択中", "color": "#FFD700", "opacity": 1.0})
-
-    for cfg in base_configs:
-        sub = df_plot[df_plot['DisplayGroup'] == cfg["name"]]
+    for cfg in configs:
+        sub = df_plot[df_plot['Group'] == cfg["name"]]
         if sub.empty: continue
-        
-        # 選択中のドットは枠線を太くして目立たせる
-        line_width = 3 if cfg["name"] == "選択中" else 0.5
-        line_color = "black" if cfg["name"] == "選択中" else "white"
-
         fig_l.add_trace(go.Scattergl(
-            x=sub['HensatiOFF'], y=sub['HensatiDEF'],
-            mode='markers', name=cfg["name"],
-            text=sub['UnitNames'], customdata=sub['TotalApps_L'],
-            marker=dict(
-                size=np.sqrt(sub['TotalApps_L'] + 1) * (2.0 if cfg["name"] == "選択中" else 1.5),
-                color=cfg["color"], opacity=cfg["opacity"],
-                line=dict(width=line_width, color=line_color)
-            ),
-            hovertemplate="<b>%{text}</b><br>プレイ数: %{customdata}回<br>攻: %{x} / 守: %{y}<extra></extra>"
+            x=sub['HensatiOFF'], y=sub['HensatiDEF'], mode='markers', name=cfg["name"], text=sub['UnitNames'],
+            marker=dict(size=np.sqrt(sub['TotalApps_L']+1)*1.5, color=cfg["color"], opacity=cfg["opacity"], line=dict(width=0.5, color='white'))
         ))
-
-    # (レイアウト設定などは以前のコードを継承)
-    fig_l.update_layout(
-        title={'text': f"<b>{sel_team_name}</b> 分析分布 (クリック連動型)", 'x': 0.5, 'y': 0.98, 'xanchor': 'center'},
-        margin=dict(l=20, r=20, t=110, b=100),
-        xaxis=dict(range=[-30, 30], title="攻撃評価"),
-        yaxis=dict(range=[-30, 30], title="守備評価", scaleanchor="x", scaleratio=1),
-        height=600, plot_bgcolor='white',
-        legend=dict(orientation="h", y=-0.2, x=0.5, xanchor="center")
-    )
-    fig_l.add_hline(y=0, line_dash="dot", line_color="gray")
-    fig_l.add_vline(x=0, line_dash="dot", line_color="gray")
-
-    # グラフを「表の上」に表示したい場合はここ
+    fig_l.update_layout(xaxis=dict(range=[-30, 30], title="攻撃評価"), yaxis=dict(range=[-30, 30], title="守備評価", scaleanchor="x"), height=700, plot_bgcolor='white')
     st.plotly_chart(fig_l, use_container_width=True)
 
-# --- タブ3: 算出方法 (新規追加) ---
+    # 詳細表
+    st.write("### ラインナップ詳細")
+    if is_league_mode:
+        out_l = df_plot[df_plot['Group'] != "その他"].copy()
+        team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
+        out_l['チーム'] = out_l['TeamID'].map(team_dict)
+        out_l = out_l[['チーム', 'UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']]
+        st.info(f"💡 プレイ数上位 {n_league_lineups} 件を表示しています。")
+    else:
+        out_l = df_plot[df_plot['Group'] != "その他"][['UnitNames', 'TotalApps_L', 'HensatiOFF', 'HensatiDEF']]
+    
+    out_l.columns = [c.replace('UnitNames','ユニット構成').replace('TotalApps_L','プレイ数').replace('HensatiOFF','攻撃評価').replace('HensatiDEF','守備評価') for c in out_l.columns]
+    st.dataframe(out_l.sort_values('プレイ数', ascending=False), use_container_width=True, hide_index=True)
+
+# --- タブ3: 算出方法 ---
 with tab3:
     st.header("評価値の算出方法について")
-    
     st.markdown("""
     本分析サイトで使用している指標の定義と算出方法は以下の通りです。
-
     ### 1. 評価値の定義
-    グラフの軸となっている **「攻撃評価」「守備評価」** は、リーグ全体の平均を **0**，標準偏差を **10**として算出しています．
-    * **選手評価**: 後述する「ラインナップ評価」で，その選手を含むランナップのプレイ数重み付平均です．
-
+    リーグ全体の平均を **0**，標準偏差を **10**として算出しています．
     ### 2. ラインナップデータの集計
-    * 同時にコートに立っている5人の組み合わせを1つの「ラインナップ」として集計しています。
-    * **合計プレイ数**: その5人の組み合わせが合計で何回起用されたか（攻撃/守備の合計）を示します。回数は通常利用されるポゼッション **ではなく**，得点，ボール保持の変更で1回としています．
-    * 1回のプレイで，攻撃側は得点すること，守備側は失点しないことが **小さな勝利**であるとみなし，その勝率をEloレーティングに似た評価式で評価しました．攻撃側の勝利には得点の重みをつけています．攻守ともにリーグ平均を **0**，標準偏差を **10** と変換しています．
-    * プレイ数が少ないラインナップは、一時的な結果により数値が極端に高く（または低く）出ることがあるため、バブルの大きさ（プレイ数）と合わせて判断することをお勧めします。
-
-    ### 3. データ期間
-    * 冒頭に記載の「分析対象期間」に基づき、各試合のボックススコアおよびプレイバイプレイデータから抽出・計算されています。
+    5人の組み合わせごとの勝率（得点/失点を反映）を算出し、評価値に変換しています。
     """)
-    
-    st.info("※ 本データは公式統計を元にkonakalabが独自に算出したものであり、B.LEAGUE公式の指標ではありません")
+    st.info("※ 本データは公式統計を元に独自に算出したものであり、B.LEAGUE公式の指標ではありません")
