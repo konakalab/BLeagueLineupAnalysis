@@ -153,18 +153,56 @@ with tab1:
         else:
             st.warning("この選手のショットデータが見つかりません。")
 
-    # テーブル表示 (以前のロジック通り)
+    # --- テーブル表示 ---
     st.write(f"### {sel_team_name} 選手データ一覧")
-    output_p = df_all_p[df_all_p['is_selected']].copy()
-    output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
-    output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
-    output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
     
-    cols = (['チーム'] if is_league_mode else []) + ['PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
-    res_p = output_p[cols].rename(columns={'PlayerNo':'背番号','PlayerNameJ':'選手名','TotalApps':'合計プレイ数','HensatiOFF':'攻撃評価','HensatiDEF':'守備評価'}).sort_values('合計プレイ数', ascending=False)
-    st.dataframe(res_p.style.format({'合計プレイ数':'{:d}','貢献量':'{:,.0f}','攻撃評価':'{:.1f}','守備評価':'{:.1f}','総合評価':'{:.1f}'}), use_container_width=True, hide_index=True)
+    # 選択されたチーム（またはリーグ全体）の選手のみを抽出
+    output_p = df_all_p[df_all_p['is_selected']].copy()
+    
+    if not output_p.empty:
+        # 必要な列の計算
+        output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
+        output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
+        output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
+        
+        # 表示する列のリストを動的に作成
+        if is_league_mode:
+            team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
+            output_p['チーム'] = output_p['TeamID'].map(team_dict)
+            cols = ['チーム', 'PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
+        else:
+            cols = ['PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
+        
+        # リネーム辞書
+        rename_dict = {
+            'PlayerNo': '背番号',
+            'PlayerNameJ': '選手名',
+            'TotalApps': '合計プレイ数',
+            'HensatiOFF': '攻撃評価',
+            'HensatiDEF': '守備評価'
+        }
+        
+        # 存在する列だけを抽出してリネーム
+        res_p = output_p[cols].rename(columns=rename_dict).sort_values('合計プレイ数', ascending=False)
 
-# (タブ2, タブ3 は以前の確定版コードをそのまま維持)
+        st.dataframe(
+            res_p.style.format({
+                '合計プレイ数': '{:d}', 
+                '貢献量': '{:,.0f}', 
+                '攻撃評価': '{:.1f}', 
+                '守備評価': '{:.1f}', 
+                '総合評価': '{:.1f}'
+            }), 
+            use_container_width=True, 
+            hide_index=True,
+            column_config={
+                "公式サイト": st.column_config.LinkColumn("公式", display_text="↗", width="small"),
+                "背番号": st.column_config.NumberColumn(width="small"),
+                "総合評価": st.column_config.NumberColumn(help="(攻撃評価 + 守備評価) / 2")
+            }
+        )
+    else:
+        st.info("表示できる選手データがありません。")
 
 # --- タブ2: ラインナップ分析 ---
 with tab2:
