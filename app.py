@@ -805,68 +805,88 @@ with tab_xP_model:
 
     import numpy as np
     import plotly.graph_objects as go
+    import streamlit as st
     
-    # --- 1. モデルの定義（2pt & 3pt） ---
-    
+    # --- 1. モデルの定義（x1: 半径r, x2: 角度theta） ---
     def calculate_xp_combined(r, theta):
-        # --- 2pt Model Coefficients ---
-        b2_0, b2_r, b2_t = 0.46897, 1.2757, -0.015426
-        b2_r2, b2_rt, b2_t2 = -1.4512, 0.11291, 0.1201
-        b2_r3, b2_r2t, b2_rt2, b2_t3 = 0.40342, -0.043352, -0.035386, -0.010404
-        b2_r4, b2_r3t, b2_t4 = -0.034016, 0.0040941, -0.027973
+        # 2pt係数
+        b2 = [0.46897, 1.2757, -0.015426, -1.4512, 0.11291, 0.1201, 0.40342, 
+              -0.043352, -0.035386, -0.010404, -0.034016, 0.0040941, -0.027973]
+        logit_2pt = (b2[0] + b2[1]*r + b2[2]*theta + b2[3]*(r**2) + b2[4]*r*theta + 
+                     b2[5]*(theta**2) + b2[6]*(r**3) + b2[7]*(r**2)*theta + 
+                     b2[8]*r*(theta**2) + b2[9]*(theta**3) + b2[10]*(r**4) + 
+                     b2[11]*(r**3)*theta + b2[12]*(theta**4))
+        xp_2pt = (1 / (1 + np.exp(-logit_2pt))) * 2
     
-        logit_2pt = (b2_0 + b2_r*r + b2_t*theta + 
-                     b2_r2*(r**2) + b2_rt*(r*theta) + b2_t2*(theta**2) + 
-                     b2_r3*(r**3) + b2_r2t*(r**2 * theta) + b2_rt2*(r * theta**2) + b2_t3*(theta**3) + 
-                     b2_r4*(r**4) + b2_r3t*(r**3 * theta) + b2_t4*(theta**4))
-        prob_2pt = 1 / (1 + np.exp(-logit_2pt))
-        xp_2pt = prob_2pt * 2  # 2倍して期待値(0.0 ~ 2.0)にする
-        
-        # --- 3pt Model Coefficients ---
-        b3_0, b3_r, b3_t = -33.055, 8.1664, 0.0099634
-        b3_r2, b3_t2 = -0.51432, 0.17446
+        # 3pt係数
+        b3 = [-33.055, 8.1664, 0.0099634, -0.51432, 0.17446]
+        logit_3pt = (b3[0] + b3[1]*r + b3[2]*theta + b3[3]*(r**2) + b3[4]*(theta**2))
+        xp_3pt = (1 / (1 + np.exp(-logit_3pt))) * 3
     
-        logit_3pt = (b3_0 + b3_r*r + b3_t*theta + b3_r2*(r**2) + b3_t2*(theta**2))
-        prob_3pt = 1 / (1 + np.exp(-logit_3pt))
-        xp_3pt = prob_3pt * 3  # 3倍して期待値(0.0 ~ 3.0)にする
-        
-        # 二つの出力のうち大きい方を採用
         return np.maximum(xp_2pt, xp_3pt)
     
-    # --- 2. 可視化用のグリッド作成 ---
-    # ※モデルの距離単位(x1)が「メートル」であることを想定
-    x_coords = np.linspace(-25, 25, 200)
-    y_coords = np.linspace(0, 40, 200)
-    X, Y = np.meshgrid(x_coords, y_coords)
+    # --- 2. 座標グリッドの作成 ---
+    # x=0(エンドライン)からx=14(ハーフコート)まで
+    x_grid = np.linspace(0, 14, 150)
+    y_grid = np.linspace(-7.5, 7.5, 150)
+    X, Y = np.meshgrid(x_grid, y_grid)
     
-    # ゴール位置(0,0)を基準とした極座標
-    R = np.sqrt(X**2 + Y**2)
-    Theta = np.arctan2(X, Y)
+    # ゴール位置 (x=1.575, y=0) からの相対座標
+    # 右から左に攻める（xが小さい方向へ向かう）ので、
+    # 攻撃側のシュート位置はゴールより右側(x > 1.575)になります
+    X_rel = X - 1.575
+    Y_rel = Y
     
-    # 期待値の計算
+    R = np.sqrt(X_rel**2 + Y_rel**2)
+    Theta = np.arctan2(Y_rel, X_rel) # ゴール正面を0度とした角度
+    
+    # 期待値計算
     Z = calculate_xp_combined(R, Theta)
     
-    # --- 3. Plotlyによる描画 ---
-    fig_xp = go.Figure(data=go.Contour(
-        z=Z, x=x_coords, y=y_coords,
-        colorscale='YlOrRd', # 期待値が高くなるほど濃い赤
-        zmin=0.0, zmax=1.5,
-        contours=dict(
-            coloring='heatmap',
-            showlabels=True,
-        ),
-        hovertemplate="横: %{x}m<br>縦: %{y}m<br>得点期待値(xP): %{z:.2f}点<extra></extra>"
+    # --- 3. Plotly描画 ---
+    fig = go.Figure()
+    
+    # ヒートマップ（期待値モデル）
+    fig.add_trace(go.Contour(
+        z=Z, x=x_grid, y=y_grid,
+        colorscale='YlOrRd',
+        zmin=0.6, zmax=1.5,
+        contours=dict(coloring='heatmap', showlabels=True),
+        line=dict(width=0),
+        hovertemplate="横(x): %{x:.2f}m<br>縦(y): %{y:.2f}m<br>得点期待値(xP): %{z:.3f}点<extra></extra>"
     ))
     
-    fig_xp.update_layout(
-        title="総合得点期待値マップ (2pt/3pt統合モデル)",
-        xaxis_title="コート横方向 (m)",
-        yaxis_title="ゴールからの距離 (m)",
-        yaxis=dict(scaleanchor="x", scaleratio=1),
-        width=800, height=700
+    # --- 4. コート描画（ご提示のパスコードをそのまま適用） ---
+    line_color = "#333333"
+    hoop_x = 1.575
+    three_radius = 6.75
+    side_dist_y = 6.6
+    angle_at_intersect = np.arcsin(side_dist_y / three_radius)
+    
+    angles = np.linspace(-angle_at_intersect, angle_at_intersect, 20)
+    arc_points = [f"L {hoop_x + three_radius * np.cos(a):.3f} {three_radius * np.sin(a):.3f}" for a in angles]
+    
+    path_segments = [f"M 0 {-side_dist_y}", f"L {hoop_x + three_radius * np.cos(-angle_at_intersect):.3f} {-side_dist_y}"]
+    path_segments.extend(arc_points)
+    path_segments.append(f"L 0 {side_dist_y}")
+    three_point_full_path = " ".join(path_segments)
+    
+    # 3Pライン
+    fig.add_shape(type="path", path=three_point_full_path, line=dict(color=line_color, width=2.5))
+    # ゴール・制限区域・外枠
+    fig.add_shape(type="line", x0=1.2, y0=-0.9, x1=1.2, y1=0.9, line=dict(color="black", width=3))
+    fig.add_shape(type="circle", x0=hoop_x-0.225, y0=-0.225, x1=hoop_x+0.225, y1=0.225, line=dict(color="orange", width=2))
+    fig.add_shape(type="rect", x0=0, y0=-2.45, x1=5.8, y1=2.45, line=dict(color=line_color, width=1.5))
+    fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2))
+    
+    fig.update_layout(
+        xaxis=dict(range=[-0.5, 14.5], visible=False, scaleanchor="y", scaleratio=1),
+        yaxis=dict(range=[-7.8, 7.8], visible=False),
+        width=1000, height=600,
+        plot_bgcolor='white'
     )
     
-    st.plotly_chart(fig_xp, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
 # --- タブ3: 算出方法 ---
 with tab3:
