@@ -870,7 +870,7 @@ with tab_xP_model:
     
     # --- 2. xP=1.0 の境界線を「別な色」で太く強調 ---
     # おすすめの色: 'orangered' (赤橙) や 'deeppink' (濃いピンク)
-    highlight_color = "orangered" 
+    highlight_color = "gray" 
     
     fig.add_trace(go.Contour(
         z=Z, x=x_grid, y=y_grid,
