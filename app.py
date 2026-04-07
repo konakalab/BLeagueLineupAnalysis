@@ -850,10 +850,19 @@ with tab_xP_model:
     fig.add_trace(go.Contour(
         z=Z, x=x_grid, y=y_grid,
         colorscale='YlGnBu',
-        zmin=0.6, zmax=1.5,
-        contours=dict(coloring='heatmap', showlabels=True),
-        line=dict(width=0),
-        hovertemplate="横(x): %{x:.2f}m<br>縦(y): %{y:.2f}m<br>得点期待値(xP): %{z:.3f}点<extra></extra>"
+        zmin=0.0, zmax=1.5,
+        contours=dict(
+        coloring='heatmap',
+        showlabels=True,      # 等高線に数値を表示
+        labelfont=dict(color='black'),
+        # --- 1.0の線を強調する設定 ---
+        start=1.0,            # 描画の開始値
+        end=1.0,              # 描画の終了値
+        size=0.1,             # ステップ（start=endならこの線だけが抽出されます）
+        showlines=True,       # 線を表示
+        ),
+        line=dict(width=2, color='black'), # 1.0の線の色と太さを指定
+        hovertemplate="xP: %{z:.3f}<extra></extra>"
     ))
     
     # --- 4. コート描画（ご提示のパスコードをそのまま適用） ---
