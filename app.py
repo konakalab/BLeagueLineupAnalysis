@@ -306,7 +306,7 @@ with tab1:
     # 2. 選手評価散布図の作成
     fig_p = px.scatter(
         df_all_p, x='HensatiOFF', y='HensatiDEF', color='DisplayGroup', size='MarkerSize', text='Label', hover_name='PlayerNameJ',
-        hover_data={'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 'TotalApps': True,  'AbvRpl_Total':True ,'DisplayGroup': False, 'MarkerSize': False, 'Label': False},
+        hover_data={'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 'TotalApps': True,  'AbvRpl_Total':':.1f' ,'DisplayGroup': False, 'MarkerSize': False, 'Label': False},
         color_discrete_map=color_map, labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計プレイ数','AbvRpl_Total':'貢献量'}
     )
 
