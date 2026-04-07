@@ -820,16 +820,18 @@ with tab_xP_model:
                      b2_r3*(r**3) + b2_r2t*(r**2 * theta) + b2_rt2*(r * theta**2) + b2_t3*(theta**3) + 
                      b2_r4*(r**4) + b2_r3t*(r**3 * theta) + b2_t4*(theta**4))
         prob_2pt = 1 / (1 + np.exp(-logit_2pt))
-    
+        xp_2pt = prob_2pt * 2  # 2倍して期待値(0.0 ~ 2.0)にする
+        
         # --- 3pt Model Coefficients ---
         b3_0, b3_r, b3_t = -33.055, 8.1664, 0.0099634
         b3_r2, b3_t2 = -0.51432, 0.17446
     
         logit_3pt = (b3_0 + b3_r*r + b3_t*theta + b3_r2*(r**2) + b3_t2*(theta**2))
         prob_3pt = 1 / (1 + np.exp(-logit_3pt))
-    
+        xp_3pt = prob_3pt * 3  # 3倍して期待値(0.0 ~ 3.0)にする
+        
         # 二つの出力のうち大きい方を採用
-        return np.maximum(prob_2pt, prob_3pt)
+        return np.maximum(xp_2pt, xp_3pt)
     
     # --- 2. 可視化用のグリッド作成 ---
     # ※モデルの距離単位(x1)が「メートル」であることを想定
@@ -848,12 +850,12 @@ with tab_xP_model:
     fig_xp = go.Figure(data=go.Contour(
         z=Z, x=x_coords, y=y_coords,
         colorscale='YlOrRd', # 期待値が高くなるほど濃い赤
-        zmin=0.3, zmax=0.6,
+        zmin=0.0, zmax=1.5,
         contours=dict(
             coloring='heatmap',
             showlabels=True,
         ),
-        hovertemplate="横: %{x}m<br>縦: %{y}m<br>期待eFG%: %{z:.3f}<extra></extra>"
+        hovertemplate="横: %{x}m<br>縦: %{y}m<br>得点期待値(xP): %{z:.2f}点<extra></extra>"
     ))
     
     fig_xp.update_layout(
