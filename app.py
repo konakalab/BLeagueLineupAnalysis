@@ -276,7 +276,7 @@ with st.expander("💡 この分析ツールの使い方はこちら"):
 st.caption(f"Developed by [@konakalab](https://x.com/konakalab) | 📅 データ更新：{analysis_period}")
 
 # --- タブの配置 ---
-tab1, tab2, tab3 = st.tabs(["選手分析", "ラインナップ分析", "評価方法の概要"])
+tab1, tab2, tab_xP_model, tab3 = st.tabs(["選手分析", "ラインナップ分析", "得点期待値モデル","評価方法の概要"])
 
 # --- タブ1: 選手分析 ---
 with tab1:
@@ -796,7 +796,13 @@ with tab2:
                 st.info("表示できるショットデータがありません。")
         else:
             st.warning(f"このラインナップ（ID: {target_lup_ids}）の出場シーンが見つかりませんでした。")
-            
+
+# --- タブ: 得点期待値モデル ---
+
+with tab_efg_model:
+    st.header("リーグ全体：得点期待値(xP)モデル")
+    st.write("シュート位置に基づいた一般化線形モデル（GLM）による期待値の可視化を公開予定です．")
+    
 # --- タブ3: 算出方法 ---
 with tab3:
     st.header("評価値の算出方法について")
