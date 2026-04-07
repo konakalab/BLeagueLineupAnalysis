@@ -867,7 +867,7 @@ with tab_xP_model:
             coloring='heatmap',
             showlines=True,
             showlabels=True, # 全ての線に数値を表示
-            labelfont=dict(size=14, color='rgba(50, 50, 50, 0.6)') # ラベルは少し控えめに
+            labelfont=dict(size=14, color='rgba(30, 30, 30, 0.75)') # ラベルは少し控えめに
         ),
         line=dict(
             width=0.8,
