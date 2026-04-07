@@ -801,7 +801,7 @@ with tab2:
 
 with tab_xP_model:
     st.header("リーグ全体：得点期待値(xP)モデル")
-    st.write("シュート位置に基づいた一般化線形モデル（GLM）による期待値の可視化を公開予定です．")
+    st.write("シュート位置に基づいた一般化線形モデル（GLM）による期待値の可視化です．")
 
     import numpy as np
     import plotly.graph_objects as go
@@ -884,6 +884,14 @@ with tab_xP_model:
         height=700, 
         yaxis=dict(scaleanchor="x", scaleratio=1), # 1メートルが縦横同じ長さに
         margin=dict(l=10, r=10, t=50, b=10)        # 余白を詰めると大きく表示されます
+        title={
+        'text': "得点期待値(xP) リーグ全体モデル<br><span style='font-size:14px;color:gray;'> B.LEAGUE2024-25 (n=107,210本)</span>",
+        'y': 0.95,           # 上下位置（0〜1、1が最上部）
+        'x': 0.5,            # 左右位置（0.5が真ん中）
+        'xanchor': 'center', # アンカーを中央に
+        'yanchor': 'top',    # アンカーを上に
+        'font': dict(size=24, color='#333333') # 文字の大きさと色
+    }
     )
     
     # 2. Streamlitで横幅を自動フィットさせる
