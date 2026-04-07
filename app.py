@@ -879,13 +879,14 @@ with tab_xP_model:
     fig.add_shape(type="rect", x0=0, y0=-2.45, x1=5.8, y1=2.45, line=dict(color=line_color, width=1.5))
     fig.add_shape(type="rect", x0=0, y0=-7.5, x1=14, y1=7.5, line=dict(color=line_color, width=2))
     
+    # 1. Plotlyで高さを固定し、アスペクト比を1:1に保つ
     fig.update_layout(
-        xaxis=dict(range=[-0.5, 14.5], visible=False, scaleanchor="y", scaleratio=1),
-        yaxis=dict(range=[-7.8, 7.8], visible=False),
-        width=1000, height=600,
-        plot_bgcolor='white'
+        height=700, 
+        yaxis=dict(scaleanchor="x", scaleratio=1), # 1メートルが縦横同じ長さに
+        margin=dict(l=10, r=10, t=50, b=10)        # 余白を詰めると大きく表示されます
     )
     
+    # 2. Streamlitで横幅を自動フィットさせる
     st.plotly_chart(fig, use_container_width=True)
 
 # --- タブ3: 算出方法 ---
