@@ -803,6 +803,14 @@ with tab_xP_model:
     st.header("リーグ全体：得点期待値(xP)モデル")
     st.write("シュート位置に基づいた一般化線形モデル（GLM）による期待値の可視化です．")
 
+    # --- ツールチップ・キャプション ---
+    with st.expander("💡説明"):
+        st.markdown(f"""
+        * B.LEAGUE2024-25シーズンの約10万本のフィールドゴールの位置ごとの成功確率を集計しました．
+        * 成功確率に得点を乗じて「得点期待値(expected points, xP)」を求めました．
+        * バックボードより奥の得点期待値は便宜上一律0としています(実際には少しフィールドゴール試投があります)
+        """)
+    
     import numpy as np
     import plotly.graph_objects as go
     import streamlit as st
