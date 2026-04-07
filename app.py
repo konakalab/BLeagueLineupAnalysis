@@ -883,10 +883,10 @@ with tab_xP_model:
     fig.update_layout(
         height=700, 
         yaxis=dict(scaleanchor="x", scaleratio=1), # 1メートルが縦横同じ長さに
-        margin=dict(l=10, r=10, t=50, b=10),        # 余白を詰めると大きく表示されます
+        margin=dict(l=10, r=10, t=70, b=10),        # 余白を詰めると大きく表示されます
         title={
         'text': "得点期待値(xP) リーグ全体モデル<br><span style='font-size:14px;color:gray;'> B.LEAGUE2024-25 (n=107,210本)</span>",
-        'y': 0.95,           # 上下位置（0〜1、1が最上部）
+        'y': 0.975,           # 上下位置（0〜1、1が最上部）
         'x': 0.5,            # 左右位置（0.5が真ん中）
         'xanchor': 'center', # アンカーを中央に
         'yanchor': 'top',    # アンカーを上に
