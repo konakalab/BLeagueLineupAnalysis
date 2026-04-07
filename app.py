@@ -799,7 +799,7 @@ with tab2:
 
 # --- タブ: 得点期待値モデル ---
 
-with tab_efg_model:
+with tab_xP_model:
     st.header("リーグ全体：得点期待値(xP)モデル")
     st.write("シュート位置に基づいた一般化線形モデル（GLM）による期待値の可視化を公開予定です．")
     
