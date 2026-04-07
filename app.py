@@ -306,8 +306,8 @@ with tab1:
     # 2. 選手評価散布図の作成
     fig_p = px.scatter(
         df_all_p, x='HensatiOFF', y='HensatiDEF', color='DisplayGroup', size='MarkerSize', text='Label', hover_name='PlayerNameJ',
-        hover_data={'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 'TotalApps': True, 'DisplayGroup': False, 'MarkerSize': False, 'Label': False},
-        color_discrete_map=color_map, labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計プレイ数'}
+        hover_data={'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 'TotalApps': True,  'AbvRpl_Total':True ,'DisplayGroup': False, 'MarkerSize': False, 'Label': False},
+        color_discrete_map=color_map, labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計プレイ数','AbvRpl_Total':貢献量}
     )
 
     fig_p.update_layout(
@@ -475,7 +475,7 @@ with tab1:
     st.write(f"### {sel_team_name} 選手データ一覧")
     output_p = df_all_p[df_all_p['is_selected']].copy()
     output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
-    output_p['貢献量'] = output_p['AbvRpl_Total'] # 新
+    output_p['貢献量'] = output_p['AbvRpl_Total'] 
     output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
     
     if is_league_mode:
