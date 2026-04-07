@@ -850,15 +850,15 @@ with tab_xP_model:
     fig.add_trace(go.Contour(
         z=Z, x=x_grid, y=y_grid,
         colorscale='YlGnBu', 
-        zmin=0.6, zmax=1.4,
+        zmin=0.0, zmax=1.5,
         contours=dict(
             start=0,
-            end=1.4,
+            end=1.5,
             size=0.2,        # 0.2刻み
             coloring='heatmap',
             showlines=True,
             showlabels=True, # 全ての線に数値を表示
-            labelfont=dict(size=10, color='rgba(50, 50, 50, 0.6)') # ラベルは少し控えめに
+            labelfont=dict(size=14, color='rgba(50, 50, 50, 0.6)') # ラベルは少し控えめに
         ),
         line=dict(
             width=0.8,
@@ -870,7 +870,7 @@ with tab_xP_model:
     
     # --- 2. xP=1.0 の境界線を「別な色」で太く強調 ---
     # おすすめの色: 'orangered' (赤橙) や 'deeppink' (濃いピンク)
-    highlight_color = "gray" 
+    highlight_color = "lightgray" 
     
     fig.add_trace(go.Contour(
         z=Z, x=x_grid, y=y_grid,
@@ -882,7 +882,7 @@ with tab_xP_model:
             showlines=True,
             showlabels=True,  # 1.0の線にもラベルを表示
             labelfont=dict(
-                size=14, 
+                size=16, 
                 color=highlight_color,
                 # 太字にしたい場合は family で指定するのが最もエラーが少ないです
                 family="Arial Black, sans-serif" 
