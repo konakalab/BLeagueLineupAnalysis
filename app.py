@@ -489,7 +489,7 @@ with tab1:
     res_p = output_p[cols].rename(columns=rename_dict).sort_values('合計プレイ数', ascending=False)
 
     st.dataframe(
-        res_p.style.format({'合計プレイ数': '{:d}', '貢献量': '{:,.0f}', '攻撃評価': '{:.1f}', '守備評価': '{:.1f}', '総合評価': '{:.1f}'}), 
+        res_p.style.format({'合計プレイ数': '{:d}', '貢献量': '{:,.1f}', '攻撃評価': '{:.1f}', '守備評価': '{:.1f}', '総合評価': '{:.1f}'}), 
         use_container_width=True, hide_index=True,
         column_config={
             "公式サイト": st.column_config.LinkColumn("公式", display_text="↗", width="small"),
