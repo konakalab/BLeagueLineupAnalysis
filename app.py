@@ -475,7 +475,7 @@ with tab1:
     st.write(f"### {sel_team_name} 選手データ一覧")
     output_p = df_all_p[df_all_p['is_selected']].copy()
     output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
-    output_p['貢献量'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) * output_p['TotalApps']
+    output_p['貢献量'] = output_p['AbvRpl_Total'] # 新
     output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
     
     if is_league_mode:
