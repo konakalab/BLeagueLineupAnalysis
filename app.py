@@ -141,7 +141,7 @@ def draw_shot_chart(player_shots, player_name):
             size=bin_stats['msize'],
             color=bin_stats['pps'],     # 【修正：色を期待値に変更】
             symbol='hexagon', 
-            colorscale='Viridis', 
+            colorscale='YlGnBu', 
             showscale=True,
             # --- 範囲の設定を追加 ---
             cmin=0.0,           # 最小値（0点：すべて外れ）
@@ -849,7 +849,7 @@ with tab_xP_model:
     # ヒートマップ（期待値モデル）
     fig.add_trace(go.Contour(
         z=Z, x=x_grid, y=y_grid,
-        colorscale='Viridis',
+        colorscale='YlGnBu',
         zmin=0.6, zmax=1.5,
         contours=dict(coloring='heatmap', showlabels=True),
         line=dict(width=0),
