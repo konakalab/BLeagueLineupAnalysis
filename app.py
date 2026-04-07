@@ -849,7 +849,7 @@ with tab_xP_model:
     # ヒートマップ（期待値モデル）
     fig.add_trace(go.Contour(
         z=Z, x=x_grid, y=y_grid,
-        colorscale='YlOrRd',
+        colorscale='Viridis',
         zmin=0.6, zmax=1.5,
         contours=dict(coloring='heatmap', showlabels=True),
         line=dict(width=0),
