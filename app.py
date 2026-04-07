@@ -842,6 +842,7 @@ with tab_xP_model:
     
     # 期待値計算
     Z = calculate_xp_combined(R, Theta)
+    Z[X < 1.2] = 0
     
     # --- 3. Plotly描画 ---
     fig = go.Figure()
