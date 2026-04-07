@@ -881,7 +881,12 @@ with tab_xP_model:
             coloring='none',
             showlines=True,
             showlabels=True,  # 1.0の線にもラベルを表示
-            labelfont=dict(size=14, color=highlight_color, fweight='bold') # 1.0は太字で強調
+            labelfont=dict(
+                size=14, 
+                color=highlight_color,
+                # 太字にしたい場合は family で指定するのが最もエラーが少ないです
+                family="Arial Black, sans-serif" 
+            )
         ),
         line=dict(
             width=4,            # しっかり太く
