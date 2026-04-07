@@ -902,7 +902,7 @@ with tab_xP_model:
             color=highlight_color,
             # dash='dash'       # 必要に応じて破線に
         ),
-        name="Efficiency Boundary (1.0)"
+        name=""
     ))
     
     # --- 4. コート描画（ご提示のパスコードをそのまま適用） ---
