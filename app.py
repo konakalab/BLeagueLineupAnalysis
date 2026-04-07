@@ -874,7 +874,7 @@ with tab_xP_model:
             color='rgba(150, 150, 150, 0.4)' # 細いグレーの線
         ),
         showscale=True,
-        hovertemplate="得点期待値: %{z:.2f}<extra></extra>"
+        hovertemplate="xP: %{z:.2f}<extra></extra>"
     ))
     
     # --- 2. xP=0.9 の境界線を「別な色」で太く強調 ---
@@ -902,7 +902,7 @@ with tab_xP_model:
             color=highlight_color,
             # dash='dash'       # 必要に応じて破線に
         ),
-        name=""
+        hoverinfo='skip'
     ))
     
     # --- 4. コート描画（ご提示のパスコードをそのまま適用） ---
