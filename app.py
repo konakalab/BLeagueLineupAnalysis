@@ -855,7 +855,7 @@ with tab_xP_model:
     # --- 3. Plotly描画 ---
     fig = go.Figure()
     
-    # --- 1. ベース：0.2刻みの細い等高線と数値ラベル ---
+    # --- 1. ベース：0.1刻みの細い等高線と数値ラベル ---
     fig.add_trace(go.Contour(
         z=Z, x=x_grid, y=y_grid,
         colorscale='YlGnBu', 
@@ -863,7 +863,7 @@ with tab_xP_model:
         contours=dict(
             start=0,
             end=1.5,
-            size=0.2,        # 0.2刻み
+            size=0.1,        # 0.2刻み
             coloring='heatmap',
             showlines=True,
             showlabels=True, # 全ての線に数値を表示
@@ -877,7 +877,7 @@ with tab_xP_model:
         hovertemplate="得点期待値: %{z:.2f}<extra></extra>"
     ))
     
-    # --- 2. xP=1.0 の境界線を「別な色」で太く強調 ---
+    # --- 2. xP=0.9 の境界線を「別な色」で太く強調 ---
     # おすすめの色: 'orangered' (赤橙) や 'deeppink' (濃いピンク)
     highlight_color = "lightgray" 
     
@@ -885,8 +885,8 @@ with tab_xP_model:
         z=Z, x=x_grid, y=y_grid,
         showscale=False,
         contours=dict(
-            start=1.0,
-            end=1.0,
+            start=0.9,
+            end=0.9,
             coloring='none',
             showlines=True,
             showlabels=True,  # 1.0の線にもラベルを表示
