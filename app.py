@@ -806,69 +806,64 @@ with tab_xP_model:
     import numpy as np
     import plotly.graph_objects as go
     
-    # --- 1. GLM数式モデルの定義 ---
-    def calculate_xp(r, theta):
-        # 推定された係数 (Estimate)
-        b0 = 0.46897      # (Intercept)
-        b_r = 1.2757      # x1
-        b_t = -0.015426   # x2
-        b_r2 = -1.4512    # x1^2
-        b_rt = 0.11291    # x1:x2
-        b_t2 = 0.1201     # x2^2
-        b_r3 = 0.40342    # x1^3
-        b_r2t = -0.043352 # x1^2:x2
-        b_rt2 = -0.035386 # x1:x2^2
-        b_t3 = -0.010404  # x2^3
-        b_r4 = -0.034016  # x1^4
-        b_r3t = 0.0040941 # x1^3:x2
-        b_t4 = -0.027973  # x2^4
+    # --- 1. モデルの定義（2pt & 3pt） ---
     
-        # 線形予測子 logit(y) の計算
-        logit_y = (b0 + 
-                   b_r*r + b_t*theta + 
-                   b_r2*(r**2) + b_rt*(r*theta) + b_t2*(theta**2) + 
-                   b_r3*(r**3) + b_r2t*(r**2 * theta) + b_rt2*(r * theta**2) + b_t3*(theta**3) + 
-                   b_r4*(r**4) + b_r3t*(r**3 * theta) + b_t4*(theta**4))
-        
-        # ロジスティック関数で確率（期待値）に変換
-        return 1 / (1 + np.exp(-logit_y))
+    def calculate_xp_combined(r, theta):
+        # --- 2pt Model Coefficients ---
+        b2_0, b2_r, b2_t = 0.46897, 1.2757, -0.015426
+        b2_r2, b2_rt, b2_t2 = -1.4512, 0.11291, 0.1201
+        b2_r3, b2_r2t, b2_rt2, b2_t3 = 0.40342, -0.043352, -0.035386, -0.010404
+        b2_r4, b2_r3t, b2_t4 = -0.034016, 0.0040941, -0.027973
+    
+        logit_2pt = (b2_0 + b2_r*r + b2_t*theta + 
+                     b2_r2*(r**2) + b2_rt*(r*theta) + b2_t2*(theta**2) + 
+                     b2_r3*(r**3) + b2_r2t*(r**2 * theta) + b2_rt2*(r * theta**2) + b2_t3*(theta**3) + 
+                     b2_r4*(r**4) + b2_r3t*(r**3 * theta) + b2_t4*(theta**4))
+        prob_2pt = 1 / (1 + np.exp(-logit_2pt))
+    
+        # --- 3pt Model Coefficients ---
+        b3_0, b3_r, b3_t = -33.055, 8.1664, 0.0099634
+        b3_r2, b3_t2 = -0.51432, 0.17446
+    
+        logit_3pt = (b3_0 + b3_r*r + b3_t*theta + b3_r2*(r**2) + b3_t2*(theta**2))
+        prob_3pt = 1 / (1 + np.exp(-logit_3pt))
+    
+        # 二つの出力のうち大きい方を採用
+        return np.maximum(prob_2pt, prob_3pt)
     
     # --- 2. 可視化用のグリッド作成 ---
-    # コート上の直交座標 (X, Y) を作成し、極座標 (r, theta) に変換
-    x_coords = np.linspace(-25, 25, 150)
-    y_coords = np.linspace(0, 47, 150)
+    # ※モデルの距離単位(x1)が「メートル」であることを想定
+    x_coords = np.linspace(-25, 25, 200)
+    y_coords = np.linspace(0, 40, 200)
     X, Y = np.meshgrid(x_coords, y_coords)
     
-    # ゴールを原点とした極座標変換
+    # ゴール位置(0,0)を基準とした極座標
     R = np.sqrt(X**2 + Y**2)
-    Theta = np.arctan2(X, Y) # ラジアン（左右の角度）
+    Theta = np.arctan2(X, Y)
     
-    # 期待値 Z の計算
-    Z = calculate_xp(R, Theta)
+    # 期待値の計算
+    Z = calculate_xp_combined(R, Theta)
     
     # --- 3. Plotlyによる描画 ---
     fig_xp = go.Figure(data=go.Contour(
         z=Z, x=x_coords, y=y_coords,
-        colorscale='RdBu_r', # 赤（高）〜白〜青（低）
-        zmin=0.2, zmax=0.6,    # 期待値のレンジ（適宜調整）
+        colorscale='YlOrRd', # 期待値が高くなるほど濃い赤
+        zmin=0.3, zmax=0.6,
         contours=dict(
             coloring='heatmap',
             showlabels=True,
-            labelfont=dict(size=10, color='black')
         ),
-        hovertemplate="横: %{x}m<br>縦: %{y}m<br>期待値(xP): %{z:.3f}<extra></extra>"
+        hovertemplate="横: %{x}m<br>縦: %{y}m<br>期待eFG%: %{z:.3f}<extra></extra>"
     ))
     
     fig_xp.update_layout(
-        title="2ptシュート得点期待値マップ",
+        title="総合得点期待値マップ (2pt/3pt統合モデル)",
         xaxis_title="コート横方向 (m)",
-        yaxis_title="エンドラインからの距離 (m)",
-        yaxis=dict(scaleanchor="x", scaleratio=1), # アスペクト比を正方形に
-        width=700,
-        height=600
+        yaxis_title="ゴールからの距離 (m)",
+        yaxis=dict(scaleanchor="x", scaleratio=1),
+        width=800, height=700
     )
     
-    # Streamlitに表示
     st.plotly_chart(fig_xp, use_container_width=True)
 
 # --- タブ3: 算出方法 ---
