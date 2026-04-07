@@ -846,23 +846,41 @@ with tab_xP_model:
     # --- 3. Plotly描画 ---
     fig = go.Figure()
     
-    # ヒートマップ（期待値モデル）
+    # --- 1. ベースのヒートマップと細い等高線 (0.2刻み) ---
     fig.add_trace(go.Contour(
         z=Z, x=x_grid, y=y_grid,
-        colorscale='YlGnBu',
-        zmin=0.0, zmax=1.5,
+        colorscale='YlGnBu',  # または 'Viridis' など
+        zmin=0.6, zmax=1.4,
         contours=dict(
-        coloring='heatmap',
-        showlabels=True,      # 等高線に数値を表示
-        labelfont=dict(color='black'),
-        # --- 1.0の線を強調する設定 ---
-        start=1.0,            # 描画の開始値
-        end=1.0,              # 描画の終了値
-        size=0.1,             # ステップ（start=endならこの線だけが抽出されます）
-        showlines=True,       # 線を表示
+            start=0,      # 0から開始
+            end=1.4,      # 1.4まで
+            size=0.2,     # 0.2刻み (0, 0.2, 0.4, ..., 1.4)
+            coloring='heatmap',
+            showlines=True,
         ),
-        line=dict(width=2, color='black'), # 1.0の線の色と太さを指定
-        hovertemplate="xP: %{z:.3f}<extra></extra>"
+        line=dict(
+            width=0.5,    # ここを細く設定
+            color='rgba(100, 100, 100, 0.5)' # 薄いグレーで邪魔しないように
+        ),
+        showscale=True,
+        hovertemplate="得点期待値: %{z:.2f}<extra></extra>"
+    ))
+    
+    # --- 2. xP=1.0 の境界線だけを太く上書き ---
+    fig.add_trace(go.Contour(
+        z=Z, x=x_grid, y=y_grid,
+        showscale=False,  # カラーバーは不要
+        contours=dict(
+            start=1.0,
+            end=1.0,      # 1.0の地点のみ指定
+            coloring='none', # 塗りつぶしなし（線のみ）
+            showlines=True,
+        ),
+        line=dict(
+            width=3,      # ここを太く設定
+            color='black' # はっきり見えるように黒
+        ),
+        name="Efficiency Boundary (1.0)"
     ))
     
     # --- 4. コート描画（ご提示のパスコードをそのまま適用） ---
