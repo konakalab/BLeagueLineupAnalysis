@@ -579,7 +579,32 @@ with tab1:
                 - **上段の棒グラフ**: そのチームがどの程度の難易度（予測確率）のシュートを多く打っているかを示します。得点の違いは色で示しています．
                 - **下段の実線**: 実際の成功率です。点線（リーグ平均）より**上**にあれば、平均より高い技能で決めていることを意味します。
                 """)
-            draw_calibration_plot(df_display, chart_title)
+                
+            if sel_p_shot == "チーム全体":
+                # --- 【チーム全体モード】攻撃と守備を縦に並べて表示 ---
+                
+                # 1. 自チームの攻撃
+                st.write(f"### 📈 {sel_team_name}：攻撃のシュート精度 (OFF)")
+                draw_calibration_plot(df_display, f"{sel_team_name} (攻撃)")
+                
+                st.write("---") # 攻守の区切り線
+                
+                # 2. 相手チームの攻撃（＝自チームの守備）
+                opp_shots = df_shot[
+                    (df_shot['ScheduleKey'].isin(df_display['ScheduleKey'])) & 
+                    (df_shot['TeamID'] != target_team_id)
+                ]
+                
+                if not opp_shots.empty:
+                    st.write(f"### 🛡️ {sel_team_name}：被シュートの精度 (DEF)")
+                    draw_calibration_plot(opp_shots, f"{sel_team_name} (守備)")
+                else:
+                    st.info("対戦相手のショットデータが見つかりません。")
+            
+            else:
+                # --- 【選手個人モード】選択中のデータのみ図示 ---
+                st.write(f"### 📈 {chart_title}：精度分析")
+                draw_calibration_plot(df_display, chart_title)
             
         else:
             st.warning("表示できるショットデータがありません。")
