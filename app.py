@@ -22,6 +22,34 @@ def load_all_data():
     try:
         # engine='pyarrow' を指定するとより高速・安定します
         df_s = pd.read_parquet('table_shotpos.parquet')
+
+        # 座標の準備 (ゴール中心 1.575, 0 からの距離 r と角度 theta)
+        rel_x = df_s['RelativeShotX'] - 1.575
+        rel_y = df_s['RelativeShotY']
+        r = np.sqrt(rel_x**2 + rel_y**2)
+        theta = np.arctan2(rel_y, rel_x)
+
+        # 2ptモデルのロジット計算
+        b2 = [0.46897, 1.2757, -0.015426, -1.4512, 0.11291, 0.1201, 0.40342, 
+              -0.043352, -0.035386, -0.010404, -0.034016, 0.0040941, -0.027973]
+        logit_2pt = (b2[0] + b2[1]*r + b2[2]*theta + b2[3]*(r**2) + b2[4]*r*theta + 
+                     b2[5]*(theta**2) + b2[6]*(r**3) + b2[7]*(r**2)*theta + 
+                     b2[8]*r*(theta**2) + b2[9]*(theta**3) + b2[10]*(r**4) + 
+                     b2[11]*(r**3)*theta + b2[12]*(theta**4))
+        prob_2pt = 1 / (1 + np.exp(-logit_2pt))
+
+        # 3ptモデルのロジット計算
+        b3 = [-33.055, 8.1664, 0.0099634, -0.51432, 0.17446]
+        logit_3pt = (b3[0] + b3[1]*r + b3[2]*theta + b3[3]*(r**2) + b3[4]*(theta**2))
+        prob_3pt = 1 / (1 + np.exp(-logit_3pt))
+
+        # ActionCD1 が 1, 2 の場合は 3ptモデル、それ以外は 2ptモデルを適用
+        # 新しい変数 'xG_league' (期待成功確率) として追加
+        is_3pt = df_s['ActionCD1'].isin([1, 2])
+        df_s['xG_league'] = np.where(is_3pt, prob_3pt, prob_2pt)
+
+        # --------------------------------------
+    
     except Exception as e:
         st.error(f"Parquetファイルの読み込みに失敗しました: {e}")
         # ファイルがない場合のバックアップとして空のDFを作成
