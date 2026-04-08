@@ -167,7 +167,7 @@ def draw_calibration_plot(df_selected, title_suffix):
     ), row=2, col=1)
 
     fig.update_layout(
-        title=f"<b>2pt/3pt 成功確率詳細分析：{title_suffix}</b>",
+        title=f"<b>2FG/3FG 成功確率詳細分析：{title_suffix}</b><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>",
         height=600, template="plotly_white",
         barmode='overlay',          # 重ね合わせ
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
