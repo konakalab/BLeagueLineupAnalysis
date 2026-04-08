@@ -177,7 +177,7 @@ def draw_calibration_plot(df_selected, title_suffix):
 
     fig.update_yaxes(title_text="試投数", row=1, col=1)
     fig.update_yaxes(title_text="実際の成功率", row=2, col=1, range=[0, 1], dtick=0.2)
-    fig.update_xaxes(title_text="モデル予測成功確率", row=2, col=1, range=[0, 1], dtick=0.1)
+    fig.update_xaxes(title_text="ショット難易度評価(位置のみに基づく)", row=2, col=1, range=[0, 1], dtick=0.1)
 
     st.plotly_chart(fig, use_container_width=True)
     
@@ -574,10 +574,10 @@ with tab1:
 
             # --- ✨ 追加：位置と成否の関係 ✨ ---
             st.divider()
-            with st.expander("💡 グラフの読み方"):
+            with st.expander("💡 下のグラフの読み方"):
                 st.write("""
-                - **上段の棒グラフ**: そのチームがどの程度の難易度（予測確率）のシュートを多く打っているかを示します。
-                - **下段の赤い線**: 実際の成功率です。点線（リーグ平均）より**上**にあれば、平均より高い技能で決めていることを意味します。
+                - **上段の棒グラフ**: そのチームがどの程度の難易度（予測確率）のシュートを多く打っているかを示します。得点の違いは色で示しています．
+                - **下段の実線**: 実際の成功率です。点線（リーグ平均）より**上**にあれば、平均より高い技能で決めていることを意味します。
                 """)
             draw_calibration_plot(df_display, chart_title)
             
