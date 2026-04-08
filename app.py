@@ -114,7 +114,7 @@ def draw_calibration_plot(df_selected, title_suffix):
                         vertical_spacing=0.1, row_heights=[0.3, 0.7])
 
     # 共通のビン設定
-    bins = np.linspace(0, 1, 21)
+    bins = np.linspace(0, 1, 11)
     mid_points = (bins[:-1] + bins[1:]) / 2
 
     # 分類設定 [ラベル, 対象ActionCD, 色]
