@@ -108,38 +108,69 @@ def load_all_data():
 
 def draw_calibration_plot(df_selected, title_suffix):
     """
-    モデルの予測確率と実際の結果を比較する図
+    2pt(青) と 3pt(赤) を分けて精度を可視化
     """
-    # 実際の結果（成功:1, 失敗:0）
-    y_true = df_selected['ActionCD1'].isin([1, 3, 4]).astype(int)
-    y_prob = df_selected['xG_league']
-
-    # 10個のビンで集計
-    bins = np.linspace(0, 1, 11)
-    bin_indices = np.digitize(y_prob, bins) - 1
-    
-    bin_counts, actual_probs, mid_points = [], [], []
-
-    for i in range(10):
-        mask = (bin_indices == i)
-        count = mask.sum()
-        if count > 0:
-            actual_probs.append(y_true[mask].mean())
-            bin_counts.append(count)
-            mid_points.append((bins[i] + bins[i+1]) / 2)
-
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                        vertical_spacing=0.08, row_heights=[0.3, 0.7])
+                        vertical_spacing=0.1, row_heights=[0.3, 0.7])
 
-    # 上段：本数
-    fig.add_trace(go.Bar(x=mid_points, y=bin_counts, name='試投数', marker_color='rgb(158,202,225)'), row=1, col=1)
-    # 下段：実績
-    fig.add_trace(go.Scatter(x=mid_points, y=actual_probs, mode='lines+markers', name='実績', line=dict(color='red', width=3)), row=2, col=1)
-    # 下段：理想線
-    fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', name='理想', line=dict(color='gray', dash='dash')), row=2, col=1)
+    # 共通のビン設定
+    bins = np.linspace(0, 1, 11)
+    mid_points = (bins[:-1] + bins[1:]) / 2
 
-    fig.update_layout(title=f"<b>シュート効率分析：{title_suffix}</b>", height=500, showlegend=False, template="plotly_white")
-    fig.update_yaxes(title_text="本数", row=1, col=1)
+    # 分類設定 [ラベル, 対象ActionCD, 色]
+    shot_types = [
+        {'label': '2pt', 'codes': [3, 4, 5, 6], 'color': '#1f77b4'}, # 青
+        {'label': '3pt', 'codes': [1, 2], 'color': '#d62728'}         # 赤
+    ]
+
+    for stype in shot_types:
+        # データの抽出
+        df_sub = df_selected[df_selected['ActionCD1'].isin(stype['codes'])].copy()
+        if df_sub.empty:
+            continue
+            
+        y_true = df_sub['ActionCD1'].isin([1, 3, 4]).astype(int)
+        y_prob = df_sub['xG_league']
+        
+        # ビン集計
+        bin_indices = np.digitize(y_prob, bins) - 1
+        counts = []
+        actuals = []
+        m_points = []
+
+        for i in range(10):
+            mask = (bin_indices == i)
+            if mask.sum() > 0:
+                counts.append(mask.sum())
+                actuals.append(y_true[mask].mean())
+                m_points.append(mid_points[i])
+
+        # 上段：本数ヒストグラム
+        fig.add_trace(go.Bar(
+            x=m_points, y=counts, name=f"{stype['label']} 試投数",
+            marker_color=stype['color'], opacity=0.4
+        ), row=1, col=1)
+
+        # 下段：信頼性曲線
+        fig.add_trace(go.Scatter(
+            x=m_points, y=actuals, mode='lines+markers',
+            name=f"{stype['label']} 実績",
+            line=dict(color=stype['color'], width=3)
+        ), row=2, col=1)
+
+    # 理想線 (y=x)
+    fig.add_trace(go.Scatter(
+        x=[0, 1], y=[0, 1], mode='lines', name='理想(平均)',
+        line=dict(color='gray', dash='dash')
+    ), row=2, col=1)
+
+    fig.update_layout(
+        title=f"<b>2pt vs 3pt 精度分析：{title_suffix}</b>",
+        height=600, template="plotly_white",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        hovermode="x unified"
+    )
+    fig.update_yaxes(title_text="試投数", row=1, col=1)
     fig.update_yaxes(title_text="実際の成功率", row=2, col=1, range=[0, 1])
     fig.update_xaxes(title_text="モデル予測成功確率", row=2, col=1, range=[0, 1])
 
