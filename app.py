@@ -162,7 +162,7 @@ def draw_calibration_plot(df_selected, title_suffix):
 
     # 理想線 (y=x)
     fig.add_trace(go.Scatter(
-        x=[0, 1], y=[0, 1], mode='lines', name='理想(平均)',
+        x=[0, 1], y=[0, 1], mode='lines', name='リーグ平均',
         line=dict(color='rgba(100, 100, 100, 0.5)', dash='dash')
     ), row=2, col=1)
 
