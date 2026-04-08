@@ -167,7 +167,7 @@ def draw_calibration_plot(df_selected, title_suffix):
     ), row=2, col=1)
 
     fig.update_layout(
-        title=f"<b>2pt/3pt 精度・分布詳細分析：{title_suffix}</b>",
+        title=f"<b>2pt/3pt 成功確率詳細分析：{title_suffix}</b>",
         height=600, template="plotly_white",
         barmode='overlay',          # 重ね合わせ
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
@@ -576,7 +576,7 @@ with tab1:
             st.divider()
             with st.expander("💡 下のグラフの読み方"):
                 st.write("""
-                - **上段の棒グラフ**: そのチームがどの程度の難易度（予測確率）のシュートを多く打っているかを示します。得点の違いは色で示しています．
+                - **上段の棒グラフ**: そのチームがどの程度の難易度（予測確率）のショットを多く打っているかを示します。得点(2, 3)の違いは色で示しています．
                 - **下段の実線**: 実際の成功率です。点線（リーグ平均）より**上**にあれば、平均より高い技能で決めていることを意味します。
                 """)
                 
@@ -584,7 +584,7 @@ with tab1:
                 # --- 【チーム全体モード】攻撃と守備を縦に並べて表示 ---
                 
                 # 1. 自チームの攻撃
-                st.write(f"### 📈 {sel_team_name}：攻撃のシュート精度 (OFF)")
+                st.write(f"### 📈 {sel_team_name}：攻撃時のショット成功確率")
                 draw_calibration_plot(df_display, f"{sel_team_name} (攻撃)")
                 
                 st.write("---") # 攻守の区切り線
@@ -596,7 +596,7 @@ with tab1:
                 ]
                 
                 if not opp_shots.empty:
-                    st.write(f"### 🛡️ {sel_team_name}：被シュートの精度 (DEF)")
+                    st.write(f"### 🛡️ {sel_team_name}：守備時のショット成功確率")
                     draw_calibration_plot(opp_shots, f"{sel_team_name} (守備)")
                 else:
                     st.info("対戦相手のショットデータが見つかりません。")
