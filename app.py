@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import numpy as np
 
 # 1. ページ全体の基本設定
@@ -105,6 +106,45 @@ def load_all_data():
         
     return df_t, df_p, df_l, df_s, period_str
 
+def draw_calibration_plot(df_selected, title_suffix):
+    """
+    モデルの予測確率と実際の結果を比較する図
+    """
+    # 実際の結果（成功:1, 失敗:0）
+    y_true = df_selected['ActionCD1'].isin([1, 3, 4]).astype(int)
+    y_prob = df_selected['xG_league']
+
+    # 10個のビンで集計
+    bins = np.linspace(0, 1, 11)
+    bin_indices = np.digitize(y_prob, bins) - 1
+    
+    bin_counts, actual_probs, mid_points = [], [], []
+
+    for i in range(10):
+        mask = (bin_indices == i)
+        count = mask.sum()
+        if count > 0:
+            actual_probs.append(y_true[mask].mean())
+            bin_counts.append(count)
+            mid_points.append((bins[i] + bins[i+1]) / 2)
+
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                        vertical_spacing=0.08, row_heights=[0.3, 0.7])
+
+    # 上段：本数
+    fig.add_trace(go.Bar(x=mid_points, y=bin_counts, name='試投数', marker_color='rgb(158,202,225)'), row=1, col=1)
+    # 下段：実績
+    fig.add_trace(go.Scatter(x=mid_points, y=actual_probs, mode='lines+markers', name='実績', line=dict(color='red', width=3)), row=2, col=1)
+    # 下段：理想線
+    fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', name='理想', line=dict(color='gray', dash='dash')), row=2, col=1)
+
+    fig.update_layout(title=f"<b>シュート効率分析：{title_suffix}</b>", height=500, showlegend=False, template="plotly_white")
+    fig.update_yaxes(title_text="本数", row=1, col=1)
+    fig.update_yaxes(title_text="実際の成功率", row=2, col=1, range=[0, 1])
+    fig.update_xaxes(title_text="モデル予測成功確率", row=2, col=1, range=[0, 1])
+
+    st.plotly_chart(fig, use_container_width=True)
+    
 # --- 統計集計用の関数 (再定義) ---
 def aggregate_stats(df_sub, label):
     # ActionCD1 の定義に基づいてシュート種別を判定 (Bリーグ等の一般的なデータ構造)
