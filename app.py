@@ -544,8 +544,7 @@ with tab1:
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
     # 2. 散布図の作成
-    # ValueErrorを避けるため、hover_dataには「加工前の列名」のみをリストで渡します。
-    # フォーマットの詳細は後続の update_traces で一括制御します。
+    # ValueErrorを物理的に回避するため、px.scatter内ではtooltip関連の設定(labels, hover_data)を一切行いません
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
@@ -555,24 +554,18 @@ with tab1:
         text='eff_label', 
         hover_name='PlayerNameJ',
         color_discrete_map=color_map,
-        labels={
-            '実得点': '実得点(Pts)', 
-            '得点期待値': '得点期待値(xPts)', 
-            '得点期待値との差': '得点期待値との差(Pts-xPts)',
-            'TotalApps': '合計プレイ数'
-        },
-        # リスト形式で渡すことでPlotly内部の「存在しないキー参照」によるエラーを回避します
-        hover_data=['得点期待値', 'TotalApps']
+        # ここでは余計な処理をさせず、最小限の列だけを渡します
+        hover_data=['得点期待値', 'TotalApps'] 
     )
     
-    # 3. デザイン・ツールチップの完全統一
-    # hovertemplate を手動定義することで、小数点10桁問題を解決し、不要な項目を排除します
+    # 3. デザイン・ツールチップの完全定義
+    # ここですべての表示名、桁数、枠線なし、中央配置を強制的に設定します
     fig_eff.update_traces(
         hovertemplate=(
             "<b>%{hovertext}</b><br>" +
             "実得点(Pts): %{x:,.0f}<br>" +
             "得点期待値(xPts): %{customdata[0]:.1f}<br>" + 
-            "得点期待値との差(Pts-xPts): %{y:+.1f}<br>" + # ここで小数点1位に固定
+            "得点期待値との差(Pts-xPts): %{y:+.1f}<br>" + 
             "合計プレイ数: %{customdata[1]:d}" +
             "<extra></extra>"
         ),
@@ -582,7 +575,8 @@ with tab1:
         ),
         textposition='middle center'  # 背番号をマーカー中央に配置（上のグラフと統一）
     )
-        
+    
+    # レイアウトの最終調整
     fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値通り")
     fig_eff.update_layout(
         height=600, 
