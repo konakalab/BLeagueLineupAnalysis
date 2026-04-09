@@ -667,58 +667,58 @@ with tab1:
             
     # 4. 選手データ一覧テーブル
     st.divider()
-st.write(f"### {sel_team_name} 選手データ一覧")
-
-# 選手ごとの Pts と xPts を集計
-player_performance = []
-target_df_p = df_all_p[df_all_p['is_selected']]
-
-for _, p_row in target_df_p.iterrows():
-    p_id = p_row['PlayerID']
-    p_shots = df_shot[df_shot['PlayerID'] == p_id]
-    p_stats = aggregate_stats(p_shots, p_row['PlayerNameJ'], league_ft_avg)
-    player_performance.append({
-        'PlayerID': p_id,
-        'Pts': p_stats['Pts'],
-        'xPts': p_stats['xPts']
-    })
-
-df_perf = pd.DataFrame(player_performance)
-output_p = pd.merge(target_df_p, df_perf, on='PlayerID')
-
-output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
-output_p['貢献量'] = output_p['AbvRpl_Total'] 
-output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
-
-# 表示列の定義
-if is_league_mode:
-    team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
-    output_p['チーム'] = output_p['TeamID'].map(team_dict)
-    cols = ['チーム', 'PlayerNo', 'PlayerNameJ', '公式サイト', 'Pts', 'xPts', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
-else:
-    cols = ['PlayerNo', 'PlayerNameJ', '公式サイト', 'Pts', 'xPts', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
-
-rename_dict = {'PlayerNo': '背番号', 'PlayerNameJ': '選手名', 'TotalApps': '合計プレイ数', 'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'Pts': '実得点', 'xPts': '得点期待値'}
-res_p = output_p[cols].rename(columns=rename_dict).sort_values('合計プレイ数', ascending=False)
-
-st.dataframe(
-    res_p.style.format({
-        '実得点': '{:,.0f}', 
-        '得点期待値': '{:,.1f}', 
-        '合計プレイ数': '{:d}', 
-        '貢献量': '{:,.1f}', 
-        '攻撃評価': '{:.1f}', 
-        '守備評価': '{:.1f}', 
-        '総合評価': '{:.1f}'
-    }), 
-    use_container_width=True, hide_index=True,
-    column_config={
-        "公式サイト": st.column_config.LinkColumn("公式", display_text="↗", width="small"),
-        "背番号": st.column_config.NumberColumn(width="small"),
-        "実得点": st.column_config.NumberColumn(help="フィールドゴールとフリースローによる実際の得点合計"),
-        "得点期待値": st.column_config.NumberColumn(help="ショット位置とリーグ平均FT%に基づく期待得点")
-    }
-)
+    st.write(f"### {sel_team_name} 選手データ一覧")
+    
+    # 選手ごとの Pts と xPts を集計
+    player_performance = []
+    target_df_p = df_all_p[df_all_p['is_selected']]
+    
+    for _, p_row in target_df_p.iterrows():
+        p_id = p_row['PlayerID']
+        p_shots = df_shot[df_shot['PlayerID'] == p_id]
+        p_stats = aggregate_stats(p_shots, p_row['PlayerNameJ'], league_ft_avg)
+        player_performance.append({
+            'PlayerID': p_id,
+            'Pts': p_stats['Pts'],
+            'xPts': p_stats['xPts']
+        })
+    
+    df_perf = pd.DataFrame(player_performance)
+    output_p = pd.merge(target_df_p, df_perf, on='PlayerID')
+    
+    output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
+    output_p['貢献量'] = output_p['AbvRpl_Total'] 
+    output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
+    
+    # 表示列の定義
+    if is_league_mode:
+        team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
+        output_p['チーム'] = output_p['TeamID'].map(team_dict)
+        cols = ['チーム', 'PlayerNo', 'PlayerNameJ', '公式サイト', 'Pts', 'xPts', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
+    else:
+        cols = ['PlayerNo', 'PlayerNameJ', '公式サイト', 'Pts', 'xPts', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
+    
+    rename_dict = {'PlayerNo': '背番号', 'PlayerNameJ': '選手名', 'TotalApps': '合計プレイ数', 'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'Pts': '実得点', 'xPts': '得点期待値'}
+    res_p = output_p[cols].rename(columns=rename_dict).sort_values('合計プレイ数', ascending=False)
+    
+    st.dataframe(
+        res_p.style.format({
+            '実得点': '{:,.0f}', 
+            '得点期待値': '{:,.1f}', 
+            '合計プレイ数': '{:d}', 
+            '貢献量': '{:,.1f}', 
+            '攻撃評価': '{:.1f}', 
+            '守備評価': '{:.1f}', 
+            '総合評価': '{:.1f}'
+        }), 
+        use_container_width=True, hide_index=True,
+        column_config={
+            "公式サイト": st.column_config.LinkColumn("公式", display_text="↗", width="small"),
+            "背番号": st.column_config.NumberColumn(width="small"),
+            "実得点": st.column_config.NumberColumn(help="フィールドゴールとフリースローによる実際の得点合計"),
+            "得点期待値": st.column_config.NumberColumn(help="ショット位置とリーグ平均FT%に基づく期待得点")
+        }
+    )
 
 # --- タブ2: ラインナップ分析 ---
 with tab2:
