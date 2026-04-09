@@ -382,46 +382,7 @@ def draw_shot_chart(player_shots, player_name):
     )
     
     return fig
-    
-# ==========================================
-# ① データの準備フェーズ (Logic) 
-# ※タブが表示される前にすべての計算を終わらせます
-# ==========================================
-# --- データの読み込み
-df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
 
-# 1. リーグ平均FT%の算出 (ActionCD1: 7=成功, 8=失敗)
-is_ft_all = df_shot['ActionCD1'].isin([7, 8])
-is_ft_made_all = df_shot['ActionCD1'] == 7
-league_ft_avg = is_ft_made_all.sum() / is_ft_all.sum() if is_ft_all.sum() > 0 else 0.75
-
-# 2. 選手データのマスタ作成
-df_all_p = df_player.copy()
-df_all_p['TotalApps'] = df_all_p['OFFApps'] + df_all_p['DEFApps']
-df_all_p['MarkerSize'] = np.sqrt(df_all_p['TotalApps'] + 1)
-is_league_mode = (target_team_id is None)
-
-# 3. 選手ごとの実得点・期待値を一括計算
-player_performance = []
-for _, p_row in df_all_p.iterrows():
-    p_shots = df_shot[df_shot['PlayerID'] == p_row['PlayerID']]
-    # aggregate_statsの第3引数に算出したリーグ平均を渡す
-    p_stats = aggregate_stats(p_shots, p_row['PlayerNameJ'], league_ft_avg)
-    player_performance.append({
-        'PlayerID': p_row['PlayerID'],
-        '実得点': p_stats['Pts'],
-        '得点期待値': p_stats['xPts']
-    })
-
-# 4. データの統合と指標算出
-df_perf = pd.DataFrame(player_performance)
-output_p_full = pd.merge(df_all_p, df_perf, on='PlayerID')
-
-output_p_full['得点乖離'] = output_p_full['実得点'] - output_p_full['得点期待値']
-output_p_full['総合評価'] = (output_p_full['HensatiOFF'] + output_p_full['HensatiDEF']) / 2
-output_p_full['貢献量'] = output_p_full['AbvRpl_Total'] 
-output_p_full['is_selected'] = True if is_league_mode else (output_p_full['TeamID'] == target_team_id)
-output_p_full['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p_full['PlayerID'].astype(str)
 
 # --- 4. メインタイトル ---
 st.title(f"🏀 Bリーグ選手評価：{sel_team_name if 'sel_team_name' in locals() else ''}")
@@ -466,6 +427,48 @@ with st.expander("💡 この分析ツールの使い方はこちら"):
     """)
     
 st.caption(f"Developed by [@konakalab](https://x.com/konakalab) | 📅 データ更新：{analysis_period}")
+
+# ==========================================
+# ① データの準備フェーズ (Logic) 
+# ※タブが表示される前にすべての計算を終わらせます
+# ==========================================
+# --- データの読み込み
+df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
+
+# 1. リーグ平均FT%の算出 (ActionCD1: 7=成功, 8=失敗)
+is_ft_all = df_shot['ActionCD1'].isin([7, 8])
+is_ft_made_all = df_shot['ActionCD1'] == 7
+league_ft_avg = is_ft_made_all.sum() / is_ft_all.sum() if is_ft_all.sum() > 0 else 0.75
+
+# 2. 選手データのマスタ作成
+df_all_p = df_player.copy()
+df_all_p['TotalApps'] = df_all_p['OFFApps'] + df_all_p['DEFApps']
+df_all_p['MarkerSize'] = np.sqrt(df_all_p['TotalApps'] + 1)
+is_league_mode = (target_team_id is None)
+
+# 3. 選手ごとの実得点・期待値を一括計算
+player_performance = []
+for _, p_row in df_all_p.iterrows():
+    p_shots = df_shot[df_shot['PlayerID'] == p_row['PlayerID']]
+    # aggregate_statsの第3引数に算出したリーグ平均を渡す
+    p_stats = aggregate_stats(p_shots, p_row['PlayerNameJ'], league_ft_avg)
+    player_performance.append({
+        'PlayerID': p_row['PlayerID'],
+        '実得点': p_stats['Pts'],
+        '得点期待値': p_stats['xPts']
+    })
+
+# 4. データの統合と指標算出
+df_perf = pd.DataFrame(player_performance)
+output_p_full = pd.merge(df_all_p, df_perf, on='PlayerID')
+
+output_p_full['得点乖離'] = output_p_full['実得点'] - output_p_full['得点期待値']
+output_p_full['総合評価'] = (output_p_full['HensatiOFF'] + output_p_full['HensatiDEF']) / 2
+output_p_full['貢献量'] = output_p_full['AbvRpl_Total'] 
+output_p_full['is_selected'] = True if is_league_mode else (output_p_full['TeamID'] == target_team_id)
+output_p_full['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p_full['PlayerID'].astype(str)
+
+
 
 # ==========================================
 # ② 画面の表示フェーズ (Layout)
