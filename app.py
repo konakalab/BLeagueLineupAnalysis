@@ -582,11 +582,12 @@ with tab1:
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
 
-    # ガイド線の線種設定
-    fig_eff.update_xaxes(spikemode="across", spikedash="dash", spikecolor="gray", spikethickness=1)
-    fig_eff.update_yaxes(spikemode="across", spikedash="dash", spikecolor="gray", spikethickness=1)
-
-    fig_eff.add_hline(y=0, line_dash="dot", line_color="gray")
+    # ガイド線の設定（fig_p 432-435行目の設定をそのまま適用）
+    fig_eff.update_xaxes(showspikes=True, spikemode="across", spikedash="dash", spikecolor="gray", spikethickness=1)
+    fig_eff.update_yaxes(showspikes=True, spikemode="across", spikedash="dash", spikecolor="gray", spikethickness=1)
+    
+    # ホバーモードの設定（fig_p 430行目の設定と一致）
+    fig_eff.update_layout(hovermode='closest')
     
     st.plotly_chart(fig_eff, use_container_width=True)
     
