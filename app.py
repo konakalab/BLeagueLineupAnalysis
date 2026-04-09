@@ -134,44 +134,45 @@ def draw_calibration_plot(df_selected, title_suffix):
         
         # --- 20個のビンで集計 ---
         bin_indices = np.digitize(y_prob, bins) - 1
-        counts, actuals, bin_labels = [], [], []
+        counts, actuals, m_points, hover_labels = [], [], [], []
 
         for i in range(len(bins)-1):
             mask = (bin_indices == i)
             if mask.sum() > 0:
                 counts.append(mask.sum())
                 actuals.append(y_true[mask].mean())
-                # ✨ 階級のラベルを作成 (例: "0.30-0.35")
-                label = f"{bins[i]:.2f}-{bins[i+1]:.2f}"
-                bin_labels.append(label)
+                m_points.append(mid_points[i])
+                # ✨ ホバー用のラベルをリストに格納
+                hover_labels.append(f"{bins[i]:.2f}-{bins[i+1]:.2f}")
 
         # --- 上段：本数 ---
         fig.add_trace(go.Bar(
-            x=bin_labels, y=counts,     # x軸に範囲ラベルを渡す
+            x=m_points, y=counts, 
             name=f"{stype['label']} 試投数",
+            customdata=hover_labels, # ✨ 範囲ラベルを渡す
             marker=dict(color=stype['color'], line=dict(color=stype['edge'], width=1)),
             offsetgroup='shared',
-            width=0.8,
-            hovertemplate="%{y}本<extra></extra>" 
+            width=bin_size * 0.8,
+            # ✨ customdata[0]を表示するように指定
+            hovertemplate="範囲: %{customdata}<br>%{y}本<extra></extra>" 
         ), row=1, col=1)
 
         # --- 下段：実績 ---
         fig.add_trace(go.Scatter(
-            x=bin_labels, y=actuals, mode='lines+markers',
+            x=m_points, y=actuals, mode='lines+markers',
             name=f"{stype['label']} 実績",
+            customdata=hover_labels, # ✨ 範囲ラベルを渡す
             line=dict(color=stype['edge'], width=2.5),
             marker=dict(size=8),
-            hovertemplate="%{y:.1%}<extra></extra>"
+            # ✨ customdata[0]を表示するように指定
+            hovertemplate="範囲: %{customdata}<br>%{y:.1%}<extra></extra>"
         ), row=2, col=1)
 
-    # --- 理想線の修正 (x軸が文字列になったため、数値から変換) ---
-    # 数値の 0.0 と 1.0 に相当するラベルの位置に線を引く
+    # 理想線 (数値軸に戻したので、元のコードでOKです)
     fig.add_trace(go.Scatter(
-        x=[f"{bins[0]:.2f}-{bins[1]:.2f}", f"{bins[-2]:.2f}-{bins[-1]:.2f}"], 
-        y=[bins[0], bins[-1]], 
-        mode='lines', name='リーグ平均',
+        x=[0, 1], y=[0, 1], mode='lines', name='リーグ平均',
         line=dict(color='rgba(100, 100, 100, 0.5)', dash='dash'),
-        hoverinfo='skip' # 理想線はホバーから除外
+        hoverinfo='skip'
     ), row=2, col=1)
 
     fig.update_layout(
