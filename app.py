@@ -544,7 +544,7 @@ with tab1:
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
     # 2. 散布図の作成
-    # 既存の変数名（'得点期待値との差'）をキーとして厳密に使用します
+    # hover_data をリスト形式で指定し、formatを別途指定することで ValueError を確実に回避します
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
@@ -554,24 +554,25 @@ with tab1:
         text='eff_label', 
         hover_name='PlayerNameJ',
         color_discrete_map=color_map,
-        # labelsは「表示の見出し」だけを定義します
         labels={
             '実得点': '実得点(Pts)', 
             '得点期待値': '得点期待値(xPts)', 
             '得点期待値との差': '得点期待値との差(Pts-xPts)',
             'TotalApps': '合計プレイ数'
         },
-        # hover_dataには、px.scatterの引数（x, y等）に渡した「元の列名」をそのままキーにします
-        hover_data={
-            '実得点': ':,.0f',
-            '得点期待値': ':.1f',       # 小数点第1位固定
-            '得点期待値との差': ':+.1f', # 符号付き・小数点第1位固定
-            'TotalApps': ':d',
-            # 不要な列をツールチップから除外（False）
-            'DisplayGroup': False,
-            'MarkerSize': False,
-            'eff_label': False
-        }
+        # キーと値の辞書形式ではなく、列名のリストを指定（これが最もエラーが起きにくい）
+        hover_data=['得点期待値', 'TotalApps'] 
+    )
+    
+    # ツールチップの数値を小数点第1位に固定し、不要な項目を排除する設定
+    # px.scatter の引数で設定するより、この update_traces で設定する方が安全です
+    fig_eff.update_traces(
+        hovertemplate="<b>%{hovertext}</b><br>実得点(Pts): %{x:,.0f}<br>得点期待値(xPts): %{customdata[0]:.1f}<br>得点期待値との差(Pts-xPts): %{y:+.1f}<br>合計プレイ数: %{customdata[1]:d}<extra></extra>",
+        marker=dict(
+            opacity=opacity_val, 
+            line=dict(width=0)       # 枠線なし
+        ),
+        textposition='middle center'  # 背番号を中央に配置
     )
     
     # 3. デザインの完全統一（既存グラフAに合わせる）
