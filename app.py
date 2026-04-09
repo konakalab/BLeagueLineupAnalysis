@@ -522,11 +522,11 @@ with tab1:
     st.plotly_chart(fig_p, use_container_width=True)
 
     # ==========================================
-    # B. 新設：得点ボリューム vs 得点効率 (Pts vs Diff)
+    # B. 新設：実得点 vs 得点期待値との差 (Pts vs Diff)
     # ※色の設定（color_map）、ラベル（背番号・中央）、枠線なし設定を既存のグラフAと完全に統一させます
     # ==========================================
     st.divider()
-    st.write(f"### 得点ボリューム vs 得点効率 ({sel_team_name})")
+    st.write(f"### 実得点と得点期待値との差 ({sel_team_name})")
 
     # 1. データ準備：既存の df_all_p と同じロジックで色のグループ分けを行う
     plot_df_eff = output_p_full.copy() # 380行目で計算済みのデータを使用
@@ -545,13 +545,13 @@ with tab1:
 
     # 2. 散布図の作成：color_discrete_map に既存の color_map を渡す
     fig_eff = px.scatter(
-        plot_df_eff, x='実得点', y='得点乖離', 
+        plot_df_eff, x='実得点', y='得点期待値との差', 
         color='DisplayGroup',       # 既存のグループ分けを使用
         size='MarkerSize',          # 既存のサイズ定義を使用
         text='eff_label',           # 背番号をテキストとして指定
         hover_name='PlayerNameJ',
         color_discrete_map=color_map, # 既存の color_map (#EF553B, #E5ECF6等) を適用
-        hover_data={'実得点': ':,.0f', '得点期待値': ':,.1f', '得点乖離': ':+.1f', 'TotalApps': True, 'DisplayGroup': False}
+        hover_data={'実得点': ':,.0f', '得点期待値': ':,.1f', '得点期待値との差': ':+.1f', 'TotalApps': True, 'DisplayGroup': False}
     )
     
     # 3. デザイン設定：既存の opacity_val を適用し、枠線なし（width=0）、テキスト中央（middle center）を一致させる
@@ -565,7 +565,7 @@ with tab1:
         height=600, 
         template="plotly_white", 
         xaxis_title="実得点 (Total Pts)", 
-        yaxis_title="得点乖離 (実得点 - 期待値)",
+        yaxis_title="得点期待値との差 (実得点 - 期待値)",
         plot_bgcolor='white',
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
