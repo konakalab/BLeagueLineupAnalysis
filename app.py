@@ -387,6 +387,8 @@ def draw_shot_chart(player_shots, player_name):
 # ① データの準備フェーズ (Logic) 
 # ※タブが表示される前にすべての計算を終わらせます
 # ==========================================
+# --- データの読み込み
+df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
 
 # 1. リーグ平均FT%の算出 (ActionCD1: 7=成功, 8=失敗)
 is_ft_all = df_shot['ActionCD1'].isin([7, 8])
