@@ -149,20 +149,22 @@ def draw_calibration_plot(df_selected, title_suffix):
         # --- 上段：本数 ---
         fig.add_trace(go.Bar(
             x=plot_labels, y=plot_counts, 
-            name=f"{stype['label']} 試投数",
+            name=f"{stype['label']} 試投数", # 💡 ここに「2pt」「3pt」が入っている
             marker=dict(color=stype['color'], line=dict(color=stype['edge'], width=1)),
             offsetgroup='shared',
             width=0.8,
-            hovertemplate="%{y}本<extra></extra>" 
+            # ✨ %{fullData.name} を追加してラベルを復活
+            hovertemplate="<b>%{fullData.name}</b>: %{y}本<extra></extra>" 
         ), row=1, col=1)
 
         # --- 下段：実績 ---
         fig.add_trace(go.Scatter(
             x=plot_labels, y=plot_actuals, mode='lines+markers',
-            name=f"{stype['label']} 実績",
+            name=f"{stype['label']} 実績", # 💡 ここに「2pt」「3pt」が入っている
             line=dict(color=stype['edge'], width=2.5),
             marker=dict(size=8),
-            hovertemplate="%{y:.1%}<extra></extra>"
+            # ✨ %{fullData.name} を追加してラベルを復活
+            hovertemplate="<b>%{fullData.name}</b>: %{y:.1%}<extra></extra>"
         ), row=2, col=1)
 
     # 理想線 (x軸が文字列のため、始点と終点のラベルを指定)
