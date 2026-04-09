@@ -107,9 +107,6 @@ def load_all_data():
     return df_t, df_p, df_l, df_s, period_str
 
 def draw_calibration_plot(df_selected, title_suffix):
-    """
-    2ptと3ptを同じX軸位置に重ね、ホバーで階級範囲(例: 0.30-0.35)を表示する
-    """
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                         vertical_spacing=0.05, row_heights=[0.3, 0.7])
 
@@ -131,73 +128,67 @@ def draw_calibration_plot(df_selected, title_suffix):
         y_prob = df_sub['xG_league']
         
         bin_indices = np.digitize(y_prob, bins) - 1
-        counts, actuals, m_points, hover_labels = [], [], [], []
+        counts, actuals, m_pts, hover_txt = [], [], [], []
 
         for i in range(len(bins)-1):
             mask = (bin_indices == i)
             if mask.sum() > 0:
                 counts.append(mask.sum())
                 actuals.append(y_true[mask].mean())
-                m_points.append(mid_points[i])
-                # ✨ 階級ラベルを作成
-                hover_labels.append(f"{bins[i]:.2f} - {bins[i+1]:.2f}")
+                m_pts.append(mid_points[i])
+                # ✨ ホバー用の範囲文字列を作成
+                hover_txt.append(f"{bins[i]:.2f}-{bins[i+1]:.2f}")
 
         # --- 上段：本数 ---
         fig.add_trace(go.Bar(
-            x=m_points, y=counts, 
+            x=m_pts, y=counts, 
             name=f"{stype['label']} 試投数",
-            customdata=hover_labels,
+            customdata=hover_txt, # ここに範囲文字列を持たせる
             marker=dict(color=stype['color'], line=dict(color=stype['edge'], width=1)),
             offsetgroup='shared',
             width=bin_size * 0.8,
-            # ✨ <extra>タグの中身を空にし、ヘッダーの数値を消すハック
-            hovertemplate="範囲: %{customdata}<br>%{y}本<extra></extra>" 
+            # ✨ 1行目に範囲を表示。 <extra>タグの中身を空にすることで右側のラベルを消す
+            hovertemplate="<b>範囲: %{customdata}</b><br>%{y}本<extra></extra>" 
         ), row=1, col=1)
 
         # --- 下段：実績 ---
         fig.add_trace(go.Scatter(
-            x=m_points, y=actuals, mode='lines+markers',
+            x=m_pts, y=actuals, mode='lines+markers',
             name=f"{stype['label']} 実績",
-            customdata=hover_labels,
+            customdata=hover_txt,
             line=dict(color=stype['edge'], width=2.5),
             marker=dict(size=8),
-            # ✨ 範囲を表示
-            hovertemplate="範囲: %{customdata}<br>%{y:.1%}<extra></extra>"
+            # ✨ 同じく1行目に範囲を表示
+            hovertemplate="<b>範囲: %{customdata}</b><br>%{y:.1%}<extra></extra>"
         ), row=2, col=1)
 
     # 理想線
     fig.add_trace(go.Scatter(
         x=[0, 1], y=[0, 1], mode='lines', name='リーグ平均',
         line=dict(color='rgba(100, 100, 100, 0.5)', dash='dash'),
-        hoverinfo='skip'
+        hoverinfo='skip' # 平均線はホバーに出さない
     ), row=2, col=1)
 
     fig.update_layout(
-        title=f"<b>2FG/3FG 成功確率詳細分析：{title_suffix}</b> <span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>",
+        title=f"<b>2FG/3FG 成功確率詳細分析：{title_suffix}</b>",
         height=600, template="plotly_white",
         barmode='overlay',
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        
+        # 💡 x unified設定
         hovermode="x unified",
-        # ✨ 重要：ホバーのヘッダー（数値）を強制的に非表示にする
-        hoverlabel=dict(namelength=0),
+        
+        # 💡 ここがポイント：一番上に自動で出る「数値」を「空文字」で上書きする
+        xaxis_hoverformat="", 
+        xaxis2_hoverformat="", # shared_xaxesなので両方指定
+        
         margin=dict(l=50, r=20, t=80, b=50)
     )
 
-    # ✨ 重要：共通X軸のホバーラベル（数値）を消す設定
-    fig.update_xaxes(
-        hoverformat=".2f",
-        title_text="ショット難易度評価(位置のみに基づく)", 
-        row=2, col=1, range=[0, 1], dtick=0.1,
-        # 共通ラベルを無効化
-        showspikes=True,
-        spikemode="across",
-        spikethickness=1,
-        spikecolor="gray"
-    )
-    
-    # 共通ヘッダーを空にする最終処理
-    fig.update_traces(xaxis='x2') # Scatter側
-    fig.update_layout(xaxis_hoverformat=' ') # 空白に設定
+    # 軸の見た目を整える
+    fig.update_yaxes(title_text="試投数", row=1, col=1)
+    fig.update_yaxes(title_text="実際の成功率", row=2, col=1, range=[0, 1], dtick=0.2)
+    fig.update_xaxes(title_text="ショット難易度評価(位置のみに基づく)", row=2, col=1, range=[0, 1], dtick=0.1)
 
     st.plotly_chart(fig, use_container_width=True)
     
