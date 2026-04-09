@@ -501,81 +501,7 @@ with tab1:
     # 散布図の表示
     st.plotly_chart(fig_p, use_container_width=True)
 
-    st.divider()
-    st.write(f"### 実得点と得点期待値 ({sel_team_name})")
     
-    # 1. データの準備（集計済みの res_p を使用）
-    plot_df_eff = res_p.copy()
-    plot_df_eff['得点乖離'] = plot_df_eff['実得点'] - plot_df_eff['得点期待値']
-    
-    # 2. 現在の「評価値分布」のコード（260-280行目付近）とロジックを完全一致させる
-    if is_league_mode:
-        # リーグ全体：全員に色と名前
-        plot_df_eff['color_val'] = plot_df_eff['得点乖離']
-        plot_df_eff['text_val'] = plot_df_eff['選手名']
-        opacity_val = 0.8  # 既存コードの全体表示時の不透明度
-    else:
-        # チーム選択時：自チーム選手のみ強調
-        plot_df_eff['color_val'] = plot_df_eff.apply(
-            lambda x: x['得点乖離'] if x['is_selected'] else np.nan, axis=1
-        )
-        plot_df_eff['text_val'] = plot_df_eff.apply(
-            lambda x: x['選手名'] if x['is_selected'] else "", axis=1
-        )
-        opacity_val = 1.0  # 既存コードのチーム選択時の自チーム不透明度
-    
-    # 3. 散布図の作成
-    fig_eff = px.scatter(
-        plot_df_eff,
-        x='実得点',
-        y='得点乖離',
-        text='text_val',
-        color='color_val',
-        color_continuous_scale='RdBu_r',  # 期待値を境に色を分ける
-        color_continuous_midpoint=0,
-        hover_data={
-            '選手名': True,
-            '実得点': ':,.0f',
-            '得点期待値': ':,.1f',
-            '得点乖離': ':+.1f',
-            '合計プレイ数': True,
-            'color_val': False,
-            'text_val': False
-        }
-    )
-    
-    # 4. デザイン設定（既存の fig_hensati.update_traces と一致させる）
-    fig_eff.update_traces(
-        marker=dict(
-            size=12,               # 既存の評価値散布図と同等のサイズ
-            opacity=opacity_val,   # 既存の変数を利用
-            line=dict(width=1, color='DarkSlateGrey') # 既存の枠線設定
-        ),
-        textposition='top center'
-    )
-    
-    # チーム選択時の「他チーム選手」をグレーアウトする設定
-    if not is_league_mode:
-        # color_val が NaN の要素（他チーム）を薄いグレーにする
-        fig_eff.update_traces(
-            marker=dict(color='rgba(200, 200, 200, 0.2)'), 
-            selector=lambda t: t.marker.color is None or (isinstance(t.marker.color, np.ndarray) and np.isnan(t.marker.color).all())
-        )
-    
-    # 5. レイアウト設定
-    fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値通り")
-    
-    fig_eff.update_layout(
-        height=600,
-        template="plotly_white",
-        xaxis_title="実得点 (Total Pts)",
-        yaxis_title="得点乖離 (実得点 - 期待値)",
-        coloraxis_colorbar=dict(title="乖離幅"),
-        hovermode='closest',
-        margin=dict(l=50, r=20, t=80, b=50) # 他のグラフとマージンを統一
-    )
-    
-    st.plotly_chart(fig_eff, use_container_width=True)
     # --- Tab 1 内: ショット分析セクション ---
     if not is_league_mode:
         st.divider()
@@ -811,6 +737,82 @@ with tab1:
             "得点期待値": st.column_config.NumberColumn(help="各ショットのxGに基づく期待値 + FT試投数×リーグ平均FT%"),
         }
     )
+
+st.divider()
+    st.write(f"### 実得点と得点期待値 ({sel_team_name})")
+    
+    # 1. データの準備（集計済みの res_p を使用）
+    plot_df_eff = res_p.copy()
+    plot_df_eff['得点乖離'] = plot_df_eff['実得点'] - plot_df_eff['得点期待値']
+    
+    # 2. 現在の「評価値分布」のコード（260-280行目付近）とロジックを完全一致させる
+    if is_league_mode:
+        # リーグ全体：全員に色と名前
+        plot_df_eff['color_val'] = plot_df_eff['得点乖離']
+        plot_df_eff['text_val'] = plot_df_eff['選手名']
+        opacity_val = 0.8  # 既存コードの全体表示時の不透明度
+    else:
+        # チーム選択時：自チーム選手のみ強調
+        plot_df_eff['color_val'] = plot_df_eff.apply(
+            lambda x: x['得点乖離'] if x['is_selected'] else np.nan, axis=1
+        )
+        plot_df_eff['text_val'] = plot_df_eff.apply(
+            lambda x: x['選手名'] if x['is_selected'] else "", axis=1
+        )
+        opacity_val = 1.0  # 既存コードのチーム選択時の自チーム不透明度
+    
+    # 3. 散布図の作成
+    fig_eff = px.scatter(
+        plot_df_eff,
+        x='実得点',
+        y='得点乖離',
+        text='text_val',
+        color='color_val',
+        color_continuous_scale='RdBu_r',  # 期待値を境に色を分ける
+        color_continuous_midpoint=0,
+        hover_data={
+            '選手名': True,
+            '実得点': ':,.0f',
+            '得点期待値': ':,.1f',
+            '得点乖離': ':+.1f',
+            '合計プレイ数': True,
+            'color_val': False,
+            'text_val': False
+        }
+    )
+    
+    # 4. デザイン設定（既存の fig_hensati.update_traces と一致させる）
+    fig_eff.update_traces(
+        marker=dict(
+            size=12,               # 既存の評価値散布図と同等のサイズ
+            opacity=opacity_val,   # 既存の変数を利用
+            line=dict(width=1, color='DarkSlateGrey') # 既存の枠線設定
+        ),
+        textposition='top center'
+    )
+    
+    # チーム選択時の「他チーム選手」をグレーアウトする設定
+    if not is_league_mode:
+        # color_val が NaN の要素（他チーム）を薄いグレーにする
+        fig_eff.update_traces(
+            marker=dict(color='rgba(200, 200, 200, 0.2)'), 
+            selector=lambda t: t.marker.color is None or (isinstance(t.marker.color, np.ndarray) and np.isnan(t.marker.color).all())
+        )
+    
+    # 5. レイアウト設定
+    fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値通り")
+    
+    fig_eff.update_layout(
+        height=600,
+        template="plotly_white",
+        xaxis_title="実得点 (Total Pts)",
+        yaxis_title="得点乖離 (実得点 - 期待値)",
+        coloraxis_colorbar=dict(title="乖離幅"),
+        hovermode='closest',
+        margin=dict(l=50, r=20, t=80, b=50) # 他のグラフとマージンを統一
+    )
+    
+    st.plotly_chart(fig_eff, use_container_width=True)
 
 # --- タブ2: ラインナップ分析 ---
 with tab2:
