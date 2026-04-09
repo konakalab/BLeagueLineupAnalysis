@@ -545,41 +545,41 @@ with tab1:
 
     # 2. 散布図の作成
     fig_eff = px.scatter(
-        plot_df_eff, x='実得点', y='得点期待値との差', 
+        plot_df_eff, 
+        x='実得点', 
+        y='得点期待値との差', 
         color='DisplayGroup',
         size='MarkerSize',
-        text='eff_label', 
+        text='eff_label',           # 背番号を中央に表示するための変数
         hover_name='PlayerNameJ',
         color_discrete_map=color_map,
-        # 1. 表示名の定義
+        # labelsで表示名（Tooltipの見出し）を定義
         labels={
             '実得点': '実得点(Pts)', 
             '得点期待値': '得点期待値(xPts)', 
             '得点期待値との差': '得点期待値との差(Pts-xPts)',
             'TotalApps': '合計プレイ数'
         },
-        # 2. Tooltipの設定（labelsで指定した「表示名」をキーにする）
+        # hover_dataには「元の列名」を指定し、書式のみ設定する
         hover_data={
-            '実得点(Pts)': ':,.0f',
-            '得点期待値(xPts)': ':.1f',       # 小数点1位に固定
-            '得点期待値との差(Pts-xPts)': ':+.1f', # 符号付き・小数点1位に固定
-            '合計プレイ数': ':d',
-            
-            # 元の変数名や不要な計算用変数をすべて非表示(False)にする
-            '実得点': False,
-            '得点期待値': False,
-            '得点期待値との差': False,
-            'TotalApps': False,
+            '実得点': ':,.0f',
+            '得点期待値': ':.1f',       # 小数点第1位
+            '得点期待値との差': ':+.1f', # 符号付き・小数点第1位
+            'TotalApps': ':d',
+            # 不要な項目（計算用変数など）を完全に非表示
             'DisplayGroup': False,
             'MarkerSize': False,
             'eff_label': False
         }
     )
     
-    # 3. マーカーデザインの統一（枠線なし・背番号を中央に）
+    # 3. マーカーデザインの完全統一（既存のグラフAと同一設定）
     fig_eff.update_traces(
-        marker=dict(opacity=opacity_val, line=dict(width=0)),
-        textposition='middle center'
+        marker=dict(
+            opacity=opacity_val, 
+            line=dict(width=0)       # 枠線なし
+        ),
+        textposition='middle center'  # 背番号をマーカー中央に配置
     )
     
     # マーカーデザインを既存のグラフAと完全に一致させる
