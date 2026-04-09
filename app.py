@@ -530,7 +530,6 @@ with tab1:
     # 1. データ準備
     plot_df_eff = output_p_full.copy()
     
-    # 既存のロジックに従い、表示グループとラベルを設定
     if is_league_mode:
         plot_df_eff['DisplayGroup'] = sel_league
         plot_df_eff['eff_label'] = ""
@@ -540,73 +539,65 @@ with tab1:
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
     # 2. 散布図の作成
-    # hover_dataを完全にNoneにして、Plotlyの自動Tooltipを初期化します
+    # hover_data=None にし、px.scatterの引数でcustomdataを渡すのが「数値ズレ」を防ぐ正攻法です
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
-        y='得点期待値との差', 
+        y='得点乖離', # y軸は計算済みの「実得点 - 得点期待値」
         color='DisplayGroup',
         size='MarkerSize',
         text='eff_label', 
         hover_name='PlayerNameJ',
         color_discrete_map=color_map,
-        hover_data=None 
+        hover_data=None,
+        customdata=['得点期待値', 'TotalApps'] # 紐付けを固定
     )
     
-    # 3. デザインとツールチップの完全制御
-    # %{x} と %{y} を直接使うことで、データの取り違えを防ぎつつ、
-    # フォーマット指定（:.1f）を確実に適用させます
+    # 3. ツールチップとデザインの「完全再現」
     fig_eff.update_traces(
-        # customdataには、x, y 以外の「得点期待値」と「TotalApps」だけを渡します
-        customdata=plot_df_eff[['得点期待値', 'TotalApps']],
         hovertemplate=(
             "<b>%{hovertext}</b><br>" +
             "実得点(Pts): %{x:,.0f}<br>" +
             "得点期待値(xPts): %{customdata[0]:.1f}<br>" + 
-            "得点期待値との差(Pts-xPts): %{y:+.1f}<br>" + # %{y}に直接フォーマットをかける
+            "得点期待値との差(Pts-xPts): %{y:+.1f}<br>" + # 小数点1位固定
             "合計プレイ数: %{customdata[1]:d}" +
             "<extra></extra>"
         ),
         marker=dict(
             opacity=opacity_val, 
-            line=dict(width=0)       # 枠線なし（上のグラフと統一）
+            line=dict(width=0)       # 枠線なし（評価値分布と同じ）
         ),
-        textposition='middle center'  # 背番号を中央に配置（上のグラフと統一）
+        textposition='middle center'  # 背番号中央（評価値分布と同じ）
     )
     
-    # 4. レイアウト調整
+    # 4. レイアウト調整（ガイド線の追加：評価値分布と完全に一致）
     fig_eff.update_layout(
-        height=600, 
+        height=750, # 評価値分布と同じ高さ
         template="plotly_white", 
-        xaxis_title="実得点 (Total Pts)", 
-        yaxis_title="得点期待値との差 (実得点 - 期待値)",
+        xaxis=dict(title="実得点 (Total Pts)", gridcolor='lightgray', showspikes=True),
+        yaxis=dict(title="得点期待値との差 (実得点 - 期待値)", gridcolor='lightgray', showspikes=True),
         plot_bgcolor='white',
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
-        
-        # ホバー時に最も近い点に反応させる設定
-        hovermode="closest"
+        hovermode='closest',
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
 
-    # X軸方向（下へ伸びるガイド線）の設定
+    # ガイド線の詳細設定（評価値分布の挙動を再現）
     fig_eff.update_xaxes(
-        showspikes=True,
         spikemode="across",
-        spikethickness=1,
         spikedash="dash",
         spikecolor="gray",
-        spikessnap="cursor"
+        spikethickness=1
     )
-
-    # Y軸方向（左へ伸びるガイド線）の設定
     fig_eff.update_yaxes(
-        showspikes=True,
         spikemode="across",
-        spikethickness=1,
         spikedash="dash",
         spikecolor="gray",
-        spikessnap="cursor"
+        spikethickness=1
     )
 
+    # 基準線の追加
+    fig_eff.add_hline(y=0, line_dash="dot", line_color="gray")
+    
     st.plotly_chart(fig_eff, use_container_width=True)
     
     
