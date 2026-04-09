@@ -192,7 +192,7 @@ def draw_calibration_plot(df_selected, title_suffix):
         title_text="ショット難易度評価(位置のみに基づく)", 
         row=2, col=1,
         tickangle=45,          # 45度回転
-        tickfont=dict(size=11) # 少し小さくすると重なりにくい
+        tickfont=dict(size=11), # 少し小さくすると重なりにくい
         showgrid=True,             # ✨ X軸に対する垂直グリッドを表示
         gridcolor='rgba(200, 200, 200, 0.3)'
     )
