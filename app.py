@@ -482,50 +482,33 @@ with tab1:
             )
             
             p_name_only = sel_p_shot.split(" ", 1)[1]
-            # 💡 ここで変数を確実に定義
             selected_player_id = int(team_players[team_players['PlayerNameJ'] == p_name_only]['PlayerID'].iloc[0])
             
-            # オンコート判定 (新カラム名に対応)
+            # オンコート判定
             all_lup_cols = [f'hLup{i}' for i in range(1, 6)] + [f'aLup{i}' for i in range(1, 6)]
             is_on_court = (df_shot[all_lup_cols] == selected_player_id).any(axis=1)
             df_on_court_all = df_shot[is_on_court].copy()
 
-            # 3行スタッツの作成
-            stats_list = []
+            # スタッツリストの作成
             df_personal = df_shot[df_shot['PlayerID'] == selected_player_id]
             df_own_on = df_on_court_all[df_on_court_all['TeamID'] == target_team_id]
             df_opp_on = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
             
-            stats_list.append(aggregate_stats(df_personal, "1. 選手個人"))
-            stats_list.append(aggregate_stats(df_own_on, "2. 自チーム(オンコート)"))
-            stats_list.append(aggregate_stats(df_opp_on, "3. 相手チーム(オンコート)"))
+            stats_list = [
+                aggregate_stats(df_personal, "1. 選手個人"),
+                aggregate_stats(df_own_on, "2. 自チーム(オンコート)"),
+                aggregate_stats(df_opp_on, "3. 相手チーム(オンコート)")
+            ]
             
             st.write(f"### 📊 {p_name_only} オンコート統計まとめ")
-            st.dataframe(
-                pd.DataFrame(stats_list).style.format({
-                    "Pts": "{:,.0f}",
-                    "FGM": "{:,.0f}", "FGA": "{:,.0f}", "FG%": "{:.1f}%",
-                    "2FGM": "{:,.0f}", "2FGA": "{:,.0f}", "2FG%": "{:.1f}%",
-                    "3FGM": "{:,.0f}", "3FGA": "{:,.0f}", "3FG%": "{:.1f}%",
-                    "FTM": "{:,.0f}", "FTA": "{:,.0f}", "FT%": "{:.1f}%"
-                }), 
-                use_container_width=True, 
-                hide_index=True
-            )
-
-            # チャート表示用データの決定
+            
+            # 表示用データの切り替え
             if analysis_mode == "① 選手個人のショット":
-                df_display = df_personal
-                chart_title = f"{p_name_only} (個人)"
-                target_cmid = 1.0
+                df_display, chart_title, target_cmid = df_personal, f"{p_name_only} (個人)", 1.0
             elif analysis_mode == "② オンコート時の自チーム全体":
-                df_display = df_own_on
-                chart_title = f"{p_name_only} 出場時 (自チーム)"
-                target_cmid = 1.0
+                df_display, chart_title, target_cmid = df_own_on, f"{p_name_only} 出場時 (自チーム)", 1.0
             else:
-                df_display = df_opp_on
-                chart_title = f"{p_name_only} 出場時 (相手チーム)"
-                target_cmid = 0.9
+                df_display, chart_title, target_cmid = df_opp_on, f"{p_name_only} 出場時 (相手チーム)", 0.9
 
         else:
             # --- 【チーム全体モード】 ---
@@ -533,30 +516,32 @@ with tab1:
             chart_title = f"{sel_team_name} (チーム全体)"
             target_cmid = 1.0
             
-            # --- 📊 チーム全体の攻撃と守備（被シュート）を並べて集計 ---
-            team_stats_list = []
-            
-            # ① 自チームの攻撃
-            team_stats_list.append(aggregate_stats(df_display, "自チーム（攻撃）"))
-            
-            # ② 相手チームの攻撃（＝自チームの被シュート）
-            # 同じ試合(ScheduleKey)における、自チーム以外のショットを抽出
+            # チーム全体の攻撃と守備を集計
             opp_shots = df_shot[
                 (df_shot['ScheduleKey'].isin(df_display['ScheduleKey'])) & 
                 (df_shot['TeamID'] != target_team_id)
             ]
-            team_stats_list.append(aggregate_stats(opp_shots, "相手チーム（守備）"))
+            
+            stats_list = [
+                aggregate_stats(df_display, "自チーム（攻撃）"),
+                aggregate_stats(opp_shots, "相手チーム（守備）")
+            ]
             
             st.write(f"### 📊 {sel_team_name} チーム統計まとめ")
-            st.dataframe(
-                pd.DataFrame(team_stats_list).style.format({
-                    "FG%": "{:.1f}%", 
-                    "2FG%": "{:.1f}%", 
-                    "3FG%": "{:.1f}%"
-                }), 
-                use_container_width=True, 
-                hide_index=True
-            )
+
+        # --- 共通の表示処理 (if-elseの外に出す) ---
+        # これにより、個人でもチームでも全く同じ表示形式が保証されます
+        st.dataframe(
+            pd.DataFrame(stats_list).style.format({
+                "Pts": "{:,.0f}",
+                "FGM": "{:,.0f}", "FGA": "{:,.0f}", "FG%": "{:.1f}%",
+                "2FGM": "{:,.0f}", "2FGA": "{:,.0f}", "2FG%": "{:.1f}%",
+                "3FGM": "{:,.0f}", "3FGA": "{:,.0f}", "3FG%": "{:.1f}%",
+                "FTM": "{:,.0f}", "FTA": "{:,.0f}", "FT%": "{:.1f}%"
+            }), 
+            use_container_width=True, 
+            hide_index=True
+        )
             
         # --- 3. ショットチャートの描画 (共通処理) ---
         if not df_display.empty:
