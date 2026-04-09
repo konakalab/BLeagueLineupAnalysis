@@ -534,9 +534,9 @@ with tab1:
             df_opp_on = df_on_court_all[df_on_court_all['TeamID'] != target_team_id]
             
             stats_list = [
-                aggregate_stats(df_personal, "1. 選手個人"),
-                aggregate_stats(df_own_on, "2. 自チーム(オンコート)"),
-                aggregate_stats(df_opp_on, "3. 相手チーム(オンコート)")
+                aggregate_stats(df_personal, "1. 選手個人", league_ft_avg),
+                aggregate_stats(df_own_on, "2. 自チーム(オンコート)", league_ft_avg),
+                aggregate_stats(df_opp_on, "3. 相手チーム(オンコート)", league_ft_avg)
             ]
             
             st.write(f"### 📊 {p_name_only} オンコート統計まとめ")
@@ -562,8 +562,8 @@ with tab1:
             ]
             
             stats_list = [
-                aggregate_stats(df_display, "自チーム（攻撃）"),
-                aggregate_stats(opp_shots, "相手チーム（守備）")
+                aggregate_stats(df_display, "自チーム（攻撃）", league_ft_avg),
+                aggregate_stats(opp_shots, "相手チーム（守備）", league_ft_avg)
             ]
             
             st.write(f"### 📊 {sel_team_name} チーム統計まとめ")
@@ -937,11 +937,11 @@ with tab2:
             
             # 💡 「自チーム」の判定に target_team_id ではなく actual_team_id を使用
             df_lup_own = df_lup_all_shots[df_lup_all_shots['TeamID'] == actual_team_id]
-            lup_stats_list.append(aggregate_stats(df_lup_own, "攻撃"))
+            lup_stats_list.append(aggregate_stats(df_lup_own, "攻撃", league_ft_avg))
             
             # 相手チーム（守備時）
             df_lup_opp = df_lup_all_shots[df_lup_all_shots['TeamID'] != actual_team_id]
-            lup_stats_list.append(aggregate_stats(df_lup_opp, "守備"))
+            lup_stats_list.append(aggregate_stats(df_lup_opp, "守備", league_ft_avg))
             
             st.write(f"#### 選択中: {sel_lup_name}")
             st.dataframe(
