@@ -108,7 +108,7 @@ def load_all_data():
 
 def draw_calibration_plot(df_selected, title_suffix):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                        vertical_spacing=0.05, row_heights=[0.3, 0.7])
+                        vertical_spacing=0.05, row_heights=[0.5, 0.5])
 
     # 1. Binの設定
     bin_size = 0.05
