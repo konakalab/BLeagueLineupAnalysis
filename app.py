@@ -484,23 +484,29 @@ with tab1:
     plot_df_p = output_p_full.copy()
     if is_league_mode:
         plot_df_p['display_color'] = plot_df_p['HensatiOFF']
-        plot_df_p['display_text'] = plot_df_p['PlayerNameJ']
-        op_p = 0.8
+        plot_df_p['display_text'] = plot_df_p['PlayerNameJ'] # 元の変数名を維持
+        op_p = 0.8 # リーグ全体時の不透明度
     else:
+        # 自チーム選手のみ色と名前を割り当てる既存ロジック
         plot_df_p['display_color'] = plot_df_p.apply(lambda x: x['HensatiOFF'] if x['is_selected'] else np.nan, axis=1)
         plot_df_p['display_text'] = plot_df_p.apply(lambda x: x['PlayerNameJ'] if x['is_selected'] else "", axis=1)
-        op_p = 1.0
+        op_p = 1.0 # チーム選択時の不透明度
 
     fig_p = px.scatter(
         plot_df_p, x="HensatiOFF", y="HensatiDEF", text="display_text",
         color="display_color", size="MarkerSize",
         color_continuous_scale='RdYlGn', color_continuous_midpoint=50,
-        hover_name="選手名",
+        hover_name="PlayerNameJ",
         hover_data={"HensatiOFF": ":.1f", "HensatiDEF": ":.1f", "TotalApps": True, "display_color": False, "display_text": False, "MarkerSize": False}
     )
     fig_p.update_traces(marker=dict(opacity=op_p, line=dict(width=1, color='DarkSlateGrey')), textposition='top center')
+    
     if not is_league_mode:
-        fig_p.update_traces(marker=dict(color='rgba(200, 200, 200, 0.2)'), selector=lambda t: t.marker.color is None or np.isnan(t.marker.color).all())
+        # 他チームのグレーアウト処理 (既存の不透明度設定 0.2)
+        fig_p.update_traces(
+            marker=dict(color='rgba(200, 200, 200, 0.2)'), 
+            selector=lambda t: t.marker.color is None or (isinstance(t.marker.color, np.ndarray) and np.isnan(t.marker.color).all())
+        )
     
     fig_p.update_layout(height=600, template="plotly_white", xaxis=dict(title="攻撃評価(偏差値)", range=[25, 75]), yaxis=dict(title="守備評価(偏差値)", range=[25, 75], scaleanchor="x", scaleratio=1))
     st.plotly_chart(fig_p, use_container_width=True)
@@ -522,12 +528,16 @@ with tab1:
     fig_eff = px.scatter(
         plot_df_eff, x='実得点', y='得点乖離', text='text_val', color='color_val',
         color_continuous_scale='RdBu_r', color_continuous_midpoint=0,
-        hover_name='選手名',
-        hover_data={'実得点': ':,.0f', '得点期待値': ':,.1f', '得点乖離': ':+.1f', 'color_val': False, 'text_val': False}
+        hover_name='PlayerNameJ',
+        hover_data={'実得点': ':,.0f', '得点期待値': ':,.1f', '得点乖離': ':+.1f', 'TotalApps': True, 'color_val': False, 'text_val': False}
     )
     fig_eff.update_traces(marker=dict(size=12, opacity=op_eff, line=dict(width=1, color='DarkSlateGrey')), textposition='top center')
+    
     if not is_league_mode:
-        fig_eff.update_traces(marker=dict(color='rgba(200, 200, 200, 0.2)'), selector=lambda t: t.marker.color is None or np.isnan(t.marker.color).all())
+        fig_eff.update_traces(
+            marker=dict(color='rgba(200, 200, 200, 0.2)'), 
+            selector=lambda t: t.marker.color is None or (isinstance(t.marker.color, np.ndarray) and np.isnan(t.marker.color).all())
+        )
     
     fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値ライン")
     fig_eff.update_layout(height=600, template="plotly_white", xaxis_title="実得点 (Total Pts)", yaxis_title="得点乖離 (実得点 - 期待値)")
@@ -537,7 +547,7 @@ with tab1:
     st.divider()
     st.write(f"### {sel_team_name} 選手データ一覧")
     
-    # 表示列の定義
+    # 内部処理では PlayerNo, PlayerNameJ のまま扱い、表示時のみ rename する
     cols_base = ['PlayerNo', 'PlayerNameJ', '公式サイト', '実得点', '得点期待値', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
     if is_league_mode:
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
@@ -546,7 +556,6 @@ with tab1:
     else:
         cols = cols_base
 
-    # 選択されている選手のみを抽出して整形
     res_p = output_p_full[output_p_full['is_selected']][cols].rename(columns={
         'PlayerNo': '背番号', 'PlayerNameJ': '選手名', 'TotalApps': '合計プレイ数', 
         'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価'
