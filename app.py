@@ -132,38 +132,46 @@ def draw_calibration_plot(df_selected, title_suffix):
         y_true = df_sub['ActionCD1'].isin([1, 3, 4]).astype(int)
         y_prob = df_sub['xG_league']
         
-        # 20個のビンで集計
+        # --- 20個のビンで集計 ---
         bin_indices = np.digitize(y_prob, bins) - 1
-        counts, actuals, m_points = [], [], []
+        counts, actuals, bin_labels = [], [], []
 
         for i in range(len(bins)-1):
             mask = (bin_indices == i)
             if mask.sum() > 0:
                 counts.append(mask.sum())
                 actuals.append(y_true[mask].mean())
-                m_points.append(mid_points[i])
+                # ✨ 階級のラベルを作成 (例: "0.30-0.35")
+                label = f"{bins[i]:.2f}-{bins[i+1]:.2f}"
+                bin_labels.append(label)
 
-        # 上段：本数 (中心を一致させるために offsetgroup を固定)
+        # --- 上段：本数 ---
         fig.add_trace(go.Bar(
-            x=m_points, y=counts, 
+            x=bin_labels, y=counts,     # x軸に範囲ラベルを渡す
             name=f"{stype['label']} 試投数",
             marker=dict(color=stype['color'], line=dict(color=stype['edge'], width=1)),
-            offsetgroup='shared',  # 💡 これを共通にすることで中心のズレをなくす
-            width=bin_size * 0.8   # 隙間をわずかに作る
+            offsetgroup='shared',
+            width=0.8,
+            hovertemplate="%{y}本<extra></extra>" 
         ), row=1, col=1)
 
-        # 下段：実績
+        # --- 下段：実績 ---
         fig.add_trace(go.Scatter(
-            x=m_points, y=actuals, mode='lines+markers',
+            x=bin_labels, y=actuals, mode='lines+markers',
             name=f"{stype['label']} 実績",
             line=dict(color=stype['edge'], width=2.5),
-            marker=dict(size=6)
+            marker=dict(size=8),
+            hovertemplate="%{y:.1%}<extra></extra>"
         ), row=2, col=1)
 
-    # 理想線 (y=x)
+    # --- 理想線の修正 (x軸が文字列になったため、数値から変換) ---
+    # 数値の 0.0 と 1.0 に相当するラベルの位置に線を引く
     fig.add_trace(go.Scatter(
-        x=[0, 1], y=[0, 1], mode='lines', name='リーグ平均',
-        line=dict(color='rgba(100, 100, 100, 0.5)', dash='dash')
+        x=[f"{bins[0]:.2f}-{bins[1]:.2f}", f"{bins[-2]:.2f}-{bins[-1]:.2f}"], 
+        y=[bins[0], bins[-1]], 
+        mode='lines', name='リーグ平均',
+        line=dict(color='rgba(100, 100, 100, 0.5)', dash='dash'),
+        hoverinfo='skip' # 理想線はホバーから除外
     ), row=2, col=1)
 
     fig.update_layout(
