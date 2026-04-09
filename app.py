@@ -525,25 +525,23 @@ with tab1:
     # B. 新設：実得点 vs 得点期待値との差
     # ==========================================
     st.divider()
-    st.write(f"### 実得点と得点期待値との差 ({sel_team_name})")
+    # st.write(f"### 実得点と得点期待値との差 ({sel_team_name})") # タイトルはfig内に含めるためコメントアウト
 
     # 1. データ準備
     plot_df_eff = output_p_full.copy()
-    
-    # 【重要】y軸に使用する列を確実に作成します（app(2).pyの381行目付近の計算に準拠）
     plot_df_eff['得点期待値との差'] = plot_df_eff['実得点'] - plot_df_eff['得点期待値']
 
     if is_league_mode:
         plot_df_eff['DisplayGroup'] = sel_league
         plot_df_eff['eff_label'] = ""
-        opacity_val = 0.2 
+        # グラフA (410行目付近) と統一
+        opacity_val_eff = 0.2
     else:
         plot_df_eff['DisplayGroup'] = plot_df_eff['is_selected'].map({True: sel_team_name, False: 'その他'})
         plot_df_eff['eff_label'] = plot_df_eff.apply(lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1)
         plot_df_eff = plot_df_eff.sort_values('is_selected')
-        # 選択チームを前面に出すための不透明度設定
-        opacity_val = 0.4 
-
+        # グラフA (420行目付近) と統一
+        opacity_val_eff = 0.4 
 
     # 2. 散布図の作成
     fig_eff = px.scatter(
@@ -569,7 +567,7 @@ with tab1:
             "<extra></extra>"
         ),
         marker=dict(
-            opacity=opacity_val, 
+            opacity=opacity_val_eff, # Aと統一した変数を使用
             line=dict(width=0)
         ),
         textposition='middle center'
@@ -577,15 +575,10 @@ with tab1:
 
     # 4. レイアウト調整（fig_p の 426-435行目と完全に一致する設定）
     fig_eff.update_layout(
-        # fig_p (426-429行目) の title 設定と完全に一致
         title={
             'text': f"<b>{sel_team_name}</b> 得点効率分布 <span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 
-            'x': 0.5, 
-            'y': 0.98, 
-            'xanchor': 'center', 
-            'yanchor': 'top'
+            'x': 0.5, 'y': 0.98, 'xanchor': 'center', 'yanchor': 'top'
         },
-        # fig_p (430-435行目) の他設定と一致
         margin=dict(l=20, r=20, t=100, b=100),
         height=750, 
         plot_bgcolor='white', 
