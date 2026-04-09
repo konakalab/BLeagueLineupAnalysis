@@ -523,39 +523,51 @@ with tab1:
 
     # ==========================================
     # B. 新設：得点ボリューム vs 得点効率 (Pts vs Diff)
-    # ※既存の変数名・分岐条件を利用して追加します
+    # ※色の設定（color_map）を既存のグラフAと完全に一致させます
     # ==========================================
     st.divider()
     st.write(f"### 得点ボリューム vs 得点効率 ({sel_team_name})")
 
-    # output_p_full（380行目で計算済み）を使用し、既存のDisplayGroupロジックを継承
+    # 1. データ準備：既存の df_all_p と同じロジックで色のグループ分けを行う
     plot_df_eff = output_p_full.copy()
-    plot_df_eff['DisplayGroup'] = plot_df_eff['is_selected'].map({True: sel_team_name, False: 'その他'}) if not is_league_mode else sel_league
-    
-    # 色付け用：選択選手は「得点乖離」の連続値、非選択はNaN（グレーアウト）
-    plot_df_eff['eff_color'] = plot_df_eff.apply(lambda x: x['得点乖離'] if x['is_selected'] else np.nan, axis=1)
-    # ラベル用：選択選手のみPlayerNameJを表示
-    plot_df_eff['eff_label'] = plot_df_eff.apply(lambda x: x['PlayerNameJ'] if x['is_selected'] else "", axis=1)
+    if is_league_mode:
+        plot_df_eff['DisplayGroup'] = sel_league
+        # 既存のリーグ全体用ラベルルールに準拠（空文字）
+        plot_df_eff['eff_label'] = ""
+    else:
+        # 既存のチーム個別用ロジック：選択チームか「その他」か
+        plot_df_eff['DisplayGroup'] = plot_df_eff['is_selected'].map({True: sel_team_name, False: 'その他'})
+        # 既存のラベルルール：選択チームの選手名のみ表示
+        plot_df_eff['eff_label'] = plot_df_eff.apply(lambda x: x['PlayerNameJ'] if x['is_selected'] else "", axis=1)
+        # 既存の重なり順ルール：選択チームを前面（最後）に持ってくる
+        plot_df_eff = plot_df_eff.sort_values('is_selected')
 
+    # 2. 散布図の作成：color_discrete_map に既存の color_map を渡す
     fig_eff = px.scatter(
-        plot_df_eff, x='実得点', y='得点乖離', text='eff_label', color='eff_color',
-        color_continuous_scale='RdBu_r', color_continuous_midpoint=0,
+        plot_df_eff, x='実得点', y='得点乖離', 
+        color='DisplayGroup',       # 既存のグループ分けを使用
+        size='MarkerSize',          # 既存のサイズ定義を使用
+        text='eff_label', 
         hover_name='PlayerNameJ',
-        hover_data={'実得点': ':,.0f', '得点期待値': ':,.1f', '得点乖離': ':+.1f', 'TotalApps': True}
+        color_discrete_map=color_map, # 既存の color_map (#EF553B, #E5ECF6等) を適用
+        hover_data={'実得点': ':,.0f', '得点期待値': ':,.1f', '得点乖離': ':+.1f', 'TotalApps': True, 'DisplayGroup': False}
     )
     
-    # 既存のグラフAと同じDarkSlateGreyの枠線とサイズ設定
-    fig_eff.update_traces(marker=dict(size=12, opacity=0.8, line=dict(width=1, color='DarkSlateGrey')), textposition='top center')
-    
-    # 既存の色設定（#E5ECF6）に準拠したグレーアウト処理
-    if not is_league_mode:
-        fig_eff.update_traces(
-            marker=dict(color='rgba(229, 236, 246, 0.4)'), 
-            selector=lambda t: t.marker.color is None or (isinstance(t.marker.color, np.ndarray) and np.isnan(t.marker.color).all())
-        )
+    # 3. デザイン設定：既存の opacity_val を適用し、枠線を一致させる
+    fig_eff.update_traces(
+        marker=dict(opacity=opacity_val, line=dict(width=1, color='DarkSlateGrey')), 
+        textposition='top center'
+    )
     
     fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値通り")
-    fig_eff.update_layout(height=600, template="plotly_white", xaxis_title="実得点 (Total Pts)", yaxis_title="得点乖離 (実得点 - 期待値)")
+    fig_eff.update_layout(
+        height=600, 
+        template="plotly_white", 
+        xaxis_title="実得点 (Total Pts)", 
+        yaxis_title="得点乖離 (実得点 - 期待値)",
+        plot_bgcolor='white',
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
+    )
     st.plotly_chart(fig_eff, use_container_width=True)
     
     
