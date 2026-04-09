@@ -527,13 +527,13 @@ with tab1:
     st.divider()
     st.write(f"### 実得点と得点期待値との差 ({sel_team_name})")
 
-    # 1. データ準備
+    # 1. データ準備（表示用の値をあらかじめ「数値」として確定させる）
     plot_df_eff = output_p_full.copy()
     
-    # 【最重要】数値型であることを強制（ここで文字列化していると:.1fが効かないため）
-    plot_df_eff['実得点'] = pd.to_numeric(plot_df_eff['実得点'], errors='coerce')
-    plot_df_eff['得点期待値'] = pd.to_numeric(plot_df_eff['得点期待値'], errors='coerce')
-    plot_df_eff['得点期待値との差'] = pd.to_numeric(plot_df_eff['得点期待値との差'], errors='coerce')
+    # 型を強制し、計算誤差を排除するために事前に丸める（念押し）
+    plot_df_eff['実得点'] = pd.to_numeric(plot_df_eff['実得点']).fillna(0)
+    plot_df_eff['得点期待値'] = pd.to_numeric(plot_df_eff['得点期待値']).fillna(0)
+    plot_df_eff['得点期待値との差'] = pd.to_numeric(plot_df_eff['得点期待値との差']).fillna(0)
 
     if is_league_mode:
         plot_df_eff['DisplayGroup'] = sel_league
@@ -544,7 +544,7 @@ with tab1:
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
     # 2. 散布図の作成
-    # hover_data=None にすることで、Plotlyが自動で作る10桁表示のツールチップを完全に無効化します
+    # hover_data=None ではなく、明示的に「空」を渡して Plotly の自動Tooltipを完全に殺します
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
@@ -554,26 +554,27 @@ with tab1:
         text='eff_label', 
         hover_name='PlayerNameJ',
         color_discrete_map=color_map,
-        hover_data=None  # これが重要
+        hover_data={} # 辞書を空にすることで、自動生成される項目を完全に排除します
     )
     
     # 3. ツールチップとデザインの「完全定義」
-    # y軸(得点期待値との差)も customdata に含めて明示的にフォーマットします
+    # ここで customdata を使わず、変数を直接指定してフォーマットを適用します
     fig_eff.update_traces(
-        customdata=plot_df_eff[['得点期待値', '得点期待値との差', 'TotalApps']],
+        # 明示的にデータを紐付け
+        customdata=np.stack((plot_df_eff['得点期待値'], plot_df_eff['得点期待値との差'], plot_df_eff['TotalApps']), axis=-1),
         hovertemplate=(
             "<b>%{hovertext}</b><br>" +
             "実得点(Pts): %{x:,.0f}<br>" +
             "得点期待値(xPts): %{customdata[0]:.1f}<br>" + 
-            "得点期待値との差(Pts-xPts): %{customdata[1]:+.1f}<br>" + # customdataから1位指定
+            "得点期待値との差(Pts-xPts): %{customdata[1]:+.1f}<br>" + 
             "合計プレイ数: %{customdata[2]:d}" +
             "<extra></extra>"
         ),
         marker=dict(
             opacity=opacity_val, 
-            line=dict(width=0)       # 枠線なし（統一）
+            line=dict(width=0)       # 枠線なし（上のグラフと統一）
         ),
-        textposition='middle center'  # 背番号中央（統一）
+        textposition='middle center'  # 背番号を中央に配置（上のグラフと統一）
     )
     
     # 4. レイアウト調整
