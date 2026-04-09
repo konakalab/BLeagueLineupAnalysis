@@ -207,48 +207,57 @@ def draw_calibration_plot(df_selected, title_suffix):
         gridcolor='rgba(200, 200, 200, 0.3)'
     )
     st.plotly_chart(fig, use_container_width=True)
-    
+
+# 全データからFT平均を算出
+total_fta = df_shot['FTA'].sum()
+total_ftm = df_shot['FTM'].sum()
+league_ft_avg = total_ftm / total_fta if total_fta > 0 else 0.75
+
 # --- 統計集計用の関数 (再定義) ---
-def aggregate_stats(df_sub, label):
-    # ActionCD1を数値型に変換
+def aggregate_stats(df_sub, label, ft_avg): # ft_avg を追加
+    if df_sub.empty:
+        return {"区分": label, "Pts": 0, "xPts": 0, "FGM": 0, "FGA": 0, "FG%": 0}
+
     action_ids = pd.to_numeric(df_sub['ActionCD1'], errors='coerce')
 
-    # --- 各種フラグの作成 ---
+    # --- フラグ作成 ---
     is_3p = action_ids.isin([1, 2])
     is_2p = action_ids.isin([3, 4, 5, 6])
     is_fg = action_ids.isin([1, 2, 3, 4, 5, 6])
     is_ft = action_ids.isin([7, 8])
-    
     is_made = action_ids.isin([1, 3, 4, 7])
 
-    # --- 個別集計 ---
-    _3fgm, _3fga = int((is_3p & is_made).sum()), int(is_3p.sum())
-    _2fgm, _2fga = int((is_2p & is_made).sum()), int(is_2p.sum())
-    fgm, fga = int((is_fg & is_made).sum()), int(is_fg.sum())
-    ftm, fta = int((is_ft & is_made).sum()), int(is_ft.sum())
-
-    # 総得点
+    # --- 数値集計 ---
+    _3fgm = int((is_3p & is_made).sum())
+    _2fgm = int((is_2p & is_made).sum())
+    ftm = int((is_ft & is_made).sum())
+    fta = int(is_ft.sum())
+    
+    # 実得点
     pts = (_3fgm * 3) + (_2fgm * 2) + (ftm * 1)
 
-    # 確率計算
+    # --- 期待値(xPts)の計算 ---
+    # FG期待値: (ActionCDに応じた点数) * (xG_league)
+    df_calc = df_sub.copy()
+    df_calc['val'] = df_calc['ActionCD1'].apply(lambda x: 3 if x in [1, 2] else (2 if x in [3,4,5,6] else 0))
+    expected_fg_pts = (df_calc['val'] * df_calc['xG_league']).sum()
+    # FT期待値: 試投数 * リーグ平均成功率
+    expected_ft_pts = fta * ft_avg
+    total_xpts = expected_fg_pts + expected_ft_pts
+
+    # (既存の他スタッツ計算は維持)
+    fgm, fga = int((is_fg & is_made).sum()), int(is_fg.sum())
     calc_pct = lambda m, a: (m / a * 100) if a > 0 else 0.0
 
-    # Bリーグ公式サイトの表示順に準拠
     return {
         "区分": label,
         "Pts": pts,
-        "FGM": fgm,
-        "FGA": fga,
-        "FG%": calc_pct(fgm, fga),
-        "2FGM": _2fgm,
-        "2FGA": _2fga,
-        "2FG%": calc_pct(_2fgm, _2fga),
-        "3FGM": _3fgm,
-        "3FGA": _3fga,
-        "3FG%": calc_pct(_3fgm, _3fga),
-        "FTM": ftm,
-        "FTA": fta,
-        "FT%": calc_pct(ftm, fta)
+        "xPts": total_xpts,
+        "Diff": pts - total_xpts,
+        "FGM": fgm, "FGA": fga, "FG%": calc_pct(fgm, fga),
+        "2FGM": _2fgm, "2FGA": int(is_2p.sum()), "2FG%": calc_pct(_2fgm, int(is_2p.sum())),
+        "3FGM": _3fgm, "3FGA": int(is_3p.sum()), "3FG%": calc_pct(_3fgm, int(is_3p.sum())),
+        "FTM": ftm, "FTA": fta, "FT%": calc_pct(ftm, fta)
     }
 
 def draw_shot_chart(player_shots, player_name):
@@ -655,32 +664,58 @@ with tab1:
             
     # 4. 選手データ一覧テーブル
     st.divider()
-    st.write(f"### {sel_team_name} 選手データ一覧")
-    output_p = df_all_p[df_all_p['is_selected']].copy()
-    output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
-    output_p['貢献量'] = output_p['AbvRpl_Total'] 
-    output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
-    
-    if is_league_mode:
-        team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
-        output_p['チーム'] = output_p['TeamID'].map(team_dict)
-        cols = ['チーム', 'PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
-    else:
-        cols = ['PlayerNo', 'PlayerNameJ', '公式サイト', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
-    
-    rename_dict = {'PlayerNo': '背番号', 'PlayerNameJ': '選手名', 'TotalApps': '合計プレイ数', 'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価'}
-    res_p = output_p[cols].rename(columns=rename_dict).sort_values('合計プレイ数', ascending=False)
+st.write(f"### {sel_team_name} 選手データ一覧")
 
-    st.dataframe(
-        res_p.style.format({'合計プレイ数': '{:d}', '貢献量': '{:,.1f}', '攻撃評価': '{:.1f}', '守備評価': '{:.1f}', '総合評価': '{:.1f}'}), 
-        use_container_width=True, hide_index=True,
-        column_config={
-            "公式サイト": st.column_config.LinkColumn("公式", display_text="↗", width="small"),
-            "背番号": st.column_config.NumberColumn(width="small"),
-            "選手名": st.column_config.TextColumn(width="medium"),
-            "総合評価": st.column_config.NumberColumn(help="(攻撃評価 + 守備評価) / 2")
-        }
-    )
+# 選手ごとの Pts と xPts を集計
+player_performance = []
+target_df_p = df_all_p[df_all_p['is_selected']]
+
+for _, p_row in target_df_p.iterrows():
+    p_id = p_row['PlayerID']
+    p_shots = df_shot[df_shot['PlayerID'] == p_id]
+    p_stats = aggregate_stats(p_shots, p_row['PlayerNameJ'], league_ft_avg)
+    player_performance.append({
+        'PlayerID': p_id,
+        'Pts': p_stats['Pts'],
+        'xPts': p_stats['xPts']
+    })
+
+df_perf = pd.DataFrame(player_performance)
+output_p = pd.merge(target_df_p, df_perf, on='PlayerID')
+
+output_p['総合評価'] = (output_p['HensatiOFF'] + output_p['HensatiDEF']) / 2
+output_p['貢献量'] = output_p['AbvRpl_Total'] 
+output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
+
+# 表示列の定義
+if is_league_mode:
+    team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
+    output_p['チーム'] = output_p['TeamID'].map(team_dict)
+    cols = ['チーム', 'PlayerNo', 'PlayerNameJ', '公式サイト', 'Pts', 'xPts', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
+else:
+    cols = ['PlayerNo', 'PlayerNameJ', '公式サイト', 'Pts', 'xPts', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
+
+rename_dict = {'PlayerNo': '背番号', 'PlayerNameJ': '選手名', 'TotalApps': '合計プレイ数', 'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'Pts': '実得点', 'xPts': '得点期待値'}
+res_p = output_p[cols].rename(columns=rename_dict).sort_values('合計プレイ数', ascending=False)
+
+st.dataframe(
+    res_p.style.format({
+        '実得点': '{:,.0f}', 
+        '得点期待値': '{:,.1f}', 
+        '合計プレイ数': '{:d}', 
+        '貢献量': '{:,.1f}', 
+        '攻撃評価': '{:.1f}', 
+        '守備評価': '{:.1f}', 
+        '総合評価': '{:.1f}'
+    }), 
+    use_container_width=True, hide_index=True,
+    column_config={
+        "公式サイト": st.column_config.LinkColumn("公式", display_text="↗", width="small"),
+        "背番号": st.column_config.NumberColumn(width="small"),
+        "実得点": st.column_config.NumberColumn(help="フィールドゴールとフリースローによる実際の得点合計"),
+        "得点期待値": st.column_config.NumberColumn(help="ショット位置とリーグ平均FT%に基づく期待得点")
+    }
+)
 
 # --- タブ2: ラインナップ分析 ---
 with tab2:
