@@ -574,7 +574,7 @@ with tab1:
         textposition='middle center'  # 背番号を中央に配置（上のグラフと統一）
     )
     
-    # 4. レイアウト調整（ガイド線の追加）
+    # 4. レイアウト調整
     fig_eff.update_layout(
         height=600, 
         template="plotly_white", 
@@ -583,28 +583,28 @@ with tab1:
         plot_bgcolor='white',
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
         
-        # マウスホバー時に十字のガイド線を出す設定
+        # ホバー時に最も近い点に反応させる設定
         hovermode="closest"
     )
 
-    # X軸方向（下へ伸びる線）の設定
+    # X軸方向（下へ伸びるガイド線）の設定
     fig_eff.update_xaxes(
         showspikes=True,
         spikemode="across",
         spikethickness=1,
-        themedata="plotly_white",
         spikedash="dash",
-        spikecolor="gray"
+        spikecolor="gray",
+        spikessnap="cursor"
     )
 
-    # Y軸方向（左へ伸びる線）の設定
+    # Y軸方向（左へ伸びるガイド線）の設定
     fig_eff.update_yaxes(
         showspikes=True,
         spikemode="across",
         spikethickness=1,
-        themedata="plotly_white",
         spikedash="dash",
-        spikecolor="gray"
+        spikecolor="gray",
+        spikessnap="cursor"
     )
 
     st.plotly_chart(fig_eff, use_container_width=True)
