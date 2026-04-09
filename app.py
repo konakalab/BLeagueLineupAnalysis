@@ -383,18 +383,43 @@ def draw_shot_chart(player_shots, player_name):
     
     return fig
     
-# 4. 関数呼び出し側でも df_shot として受け取る
-df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
+# ==========================================
+# ① データの準備フェーズ (Logic) 
+# ※タブが表示される前にすべての計算を終わらせます
+# ==========================================
 
-# ✨ FTA列がないため、ActionCD1から集計する
-# ActionCD1: 7=FT成功, 8=FT失敗 と想定
+# 1. リーグ平均FT%の算出 (ActionCD1: 7=成功, 8=失敗)
 is_ft_all = df_shot['ActionCD1'].isin([7, 8])
 is_ft_made_all = df_shot['ActionCD1'] == 7
+league_ft_avg = is_ft_made_all.sum() / is_ft_all.sum() if is_ft_all.sum() > 0 else 0.75
 
-total_fta = is_ft_all.sum()
-total_ftm = is_ft_made_all.sum()
+# 2. 選手データのマスタ作成
+df_all_p = df_player.copy()
+df_all_p['TotalApps'] = df_all_p['OFFApps'] + df_all_p['DEFApps']
+df_all_p['MarkerSize'] = np.sqrt(df_all_p['TotalApps'] + 1)
+is_league_mode = (target_team_id is None)
 
-league_ft_avg = total_ftm / total_fta if total_fta > 0 else 0.75
+# 3. 選手ごとの実得点・期待値を一括計算
+player_performance = []
+for _, p_row in df_all_p.iterrows():
+    p_shots = df_shot[df_shot['PlayerID'] == p_row['PlayerID']]
+    # aggregate_statsの第3引数に算出したリーグ平均を渡す
+    p_stats = aggregate_stats(p_shots, p_row['PlayerNameJ'], league_ft_avg)
+    player_performance.append({
+        'PlayerID': p_row['PlayerID'],
+        '実得点': p_stats['Pts'],
+        '得点期待値': p_stats['xPts']
+    })
+
+# 4. データの統合と指標算出
+df_perf = pd.DataFrame(player_performance)
+output_p_full = pd.merge(df_all_p, df_perf, on='PlayerID')
+
+output_p_full['得点乖離'] = output_p_full['実得点'] - output_p_full['得点期待値']
+output_p_full['総合評価'] = (output_p_full['HensatiOFF'] + output_p_full['HensatiDEF']) / 2
+output_p_full['貢献量'] = output_p_full['AbvRpl_Total'] 
+output_p_full['is_selected'] = True if is_league_mode else (output_p_full['TeamID'] == target_team_id)
+output_p_full['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p_full['PlayerID'].astype(str)
 
 # --- 4. メインタイトル ---
 st.title(f"🏀 Bリーグ選手評価：{sel_team_name if 'sel_team_name' in locals() else ''}")
@@ -440,69 +465,100 @@ with st.expander("💡 この分析ツールの使い方はこちら"):
     
 st.caption(f"Developed by [@konakalab](https://x.com/konakalab) | 📅 データ更新：{analysis_period}")
 
-# --- タブの配置 ---
+# ==========================================
+# ② 画面の表示フェーズ (Layout)
+# ==========================================
 tab1, tab2, tab_xP_model, tab3 = st.tabs(["選手分析", "ラインナップ分析", "得点期待値モデル","評価方法の概要"])
 
 # --- タブ1: 選手分析 ---
 with tab1:
-    df_all_p = df_player.copy()
-    df_all_p['TotalApps'] = df_all_p['OFFApps'] + df_all_p['DEFApps']
-    df_all_p['MarkerSize'] = np.sqrt(df_all_p['TotalApps'] + 1)
-    is_league_mode = (target_team_id is None)
-
-    # 1. 選手評価分布のデータ準備
-    if is_league_mode:
-        st.subheader(f"リーグ全体 選手評価分布 ({sel_league})")
-        df_all_p['DisplayGroup'] = sel_league
-        df_all_p['is_selected'] = True
-        df_all_p['Label'] = ""
-        color_map = {sel_league: '#636EFA'}
-        opacity_val = 0.2
-    else:
-        st.subheader(f"選手別 評価値分布 ({sel_team_name})")
-        df_all_p['is_selected'] = (df_all_p['TeamID'] == target_team_id)
-        df_all_p['DisplayGroup'] = df_all_p['is_selected'].map({True: sel_team_name, False: 'その他'})
-        df_all_p['Label'] = df_all_p.apply(lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1)
-        color_map = {sel_team_name: '#EF553B', 'その他': '#E5ECF6'}
-        df_all_p = df_all_p.sort_values('is_selected')
-        # 選択チームを前面に出すための不透明度設定
-        opacity_val = 0.4 
-
-    # 2. 選手評価散布図の作成
-    fig_p = px.scatter(
-        df_all_p, x='HensatiOFF', y='HensatiDEF', color='DisplayGroup', size='MarkerSize', text='Label', hover_name='PlayerNameJ',
-        hover_data={'HensatiOFF': ':.1f', 'HensatiDEF': ':.1f', 'TotalApps': True,  'AbvRpl_Total':':.1f' ,'DisplayGroup': False, 'MarkerSize': False, 'Label': False},
-        color_discrete_map=color_map, labels={'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価', 'TotalApps': '合計プレイ数','AbvRpl_Total':'貢献量'}
-    )
-
-    fig_p.update_layout(
-        title={'text': f"<b>{sel_team_name}</b> 選手評価分布<br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 'x': 0.5, 'y': 0.98, 'xanchor': 'center', 'yanchor': 'top'},
-        margin=dict(l=20, r=20, t=100, b=100),
-        xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='lightgray', showspikes=True),
-        yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1, showspikes=True),
-        height=750, plot_bgcolor='white', hovermode='closest',
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
-    )
-
-    for k in sum_values:
-        fig_p.add_trace(go.Scattergl(
-            x=x_range,
-            y=k - x_range, # y = -x + k
-            mode='lines',
-            line=dict(color='black', width=1, dash='dot'),
-            showlegend=False,
-            hoverinfo='skip',
-            opacity=0.3
-        ))
-        
-    fig_p.add_hline(y=0, line_dash="dot", line_color="gray")
-    fig_p.add_vline(x=0, line_dash="dot", line_color="gray")
+    # --- A. 評価値分布 (既存の偏差値散布図) ---
+    st.subheader(f"選手別 評価値分布 ({sel_team_name})")
     
-    # 散布図の表示
+    plot_df_p = output_p_full.copy()
+    if is_league_mode:
+        plot_df_p['display_color'] = plot_df_p['HensatiOFF']
+        plot_df_p['display_text'] = plot_df_p['選手名']
+        op_p = 0.8
+    else:
+        plot_df_p['display_color'] = plot_df_p.apply(lambda x: x['HensatiOFF'] if x['is_selected'] else np.nan, axis=1)
+        plot_df_p['display_text'] = plot_df_p.apply(lambda x: x['選手名'] if x['is_selected'] else "", axis=1)
+        op_p = 1.0
+
+    fig_p = px.scatter(
+        plot_df_p, x="HensatiOFF", y="HensatiDEF", text="display_text",
+        color="display_color", size="MarkerSize",
+        color_continuous_scale='RdYlGn', color_continuous_midpoint=50,
+        hover_name="選手名",
+        hover_data={"HensatiOFF": ":.1f", "HensatiDEF": ":.1f", "TotalApps": True, "display_color": False, "display_text": False, "MarkerSize": False}
+    )
+    fig_p.update_traces(marker=dict(opacity=op_p, line=dict(width=1, color='DarkSlateGrey')), textposition='top center')
+    if not is_league_mode:
+        fig_p.update_traces(marker=dict(color='rgba(200, 200, 200, 0.2)'), selector=lambda t: t.marker.color is None or np.isnan(t.marker.color).all())
+    
+    fig_p.update_layout(height=600, template="plotly_white", xaxis=dict(title="攻撃評価(偏差値)", range=[25, 75]), yaxis=dict(title="守備評価(偏差値)", range=[25, 75], scaleanchor="x", scaleratio=1))
     st.plotly_chart(fig_p, use_container_width=True)
 
+    # --- B. 得点ボリューム vs 得点効率 (新設) ---
+    st.divider()
+    st.write(f"### 得点ボリューム vs 得点効率 ({sel_team_name})")
     
-    # --- Tab 1 内: ショット分析セクション ---
+    plot_df_eff = output_p_full.copy()
+    if is_league_mode:
+        plot_df_eff['color_val'] = plot_df_eff['得点乖離']
+        plot_df_eff['text_val'] = plot_df_eff['選手名']
+        op_eff = 0.8
+    else:
+        plot_df_eff['color_val'] = plot_df_eff.apply(lambda x: x['得点乖離'] if x['is_selected'] else np.nan, axis=1)
+        plot_df_eff['text_val'] = plot_df_eff.apply(lambda x: x['選手名'] if x['is_selected'] else "", axis=1)
+        op_eff = 1.0
+
+    fig_eff = px.scatter(
+        plot_df_eff, x='実得点', y='得点乖離', text='text_val', color='color_val',
+        color_continuous_scale='RdBu_r', color_continuous_midpoint=0,
+        hover_name='選手名',
+        hover_data={'実得点': ':,.0f', '得点期待値': ':,.1f', '得点乖離': ':+.1f', 'color_val': False, 'text_val': False}
+    )
+    fig_eff.update_traces(marker=dict(size=12, opacity=op_eff, line=dict(width=1, color='DarkSlateGrey')), textposition='top center')
+    if not is_league_mode:
+        fig_eff.update_traces(marker=dict(color='rgba(200, 200, 200, 0.2)'), selector=lambda t: t.marker.color is None or np.isnan(t.marker.color).all())
+    
+    fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値ライン")
+    fig_eff.update_layout(height=600, template="plotly_white", xaxis_title="実得点 (Total Pts)", yaxis_title="得点乖離 (実得点 - 期待値)")
+    st.plotly_chart(fig_eff, use_container_width=True)
+
+    # --- C. 選手データ一覧 (テーブル) ---
+    st.divider()
+    st.write(f"### {sel_team_name} 選手データ一覧")
+    
+    # 表示列の定義
+    cols_base = ['PlayerNo', 'PlayerNameJ', '公式サイト', '実得点', '得点期待値', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
+    if is_league_mode:
+        team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
+        output_p_full['チーム'] = output_p_full['TeamID'].map(team_dict)
+        cols = ['チーム'] + cols_base
+    else:
+        cols = cols_base
+
+    # 選択されている選手のみを抽出して整形
+    res_p = output_p_full[output_p_full['is_selected']][cols].rename(columns={
+        'PlayerNo': '背番号', 'PlayerNameJ': '選手名', 'TotalApps': '合計プレイ数', 
+        'HensatiOFF': '攻撃評価', 'HensatiDEF': '守備評価'
+    }).sort_values('合計プレイ数', ascending=False)
+
+    st.dataframe(
+        res_p.style.format({
+            '実得点': '{:,.0f}', '得点期待値': '{:,.1f}', '合計プレイ数': '{:d}', 
+            '貢献量': '{:,.1f}', '攻撃評価': '{:.1f}', '守備評価': '{:.1f}', '総合評価': '{:.1f}'
+        }), 
+        use_container_width=True, hide_index=True,
+        column_config={
+            "公式サイト": st.column_config.LinkColumn("公式", display_text="↗", width="small"),
+            "背番号": st.column_config.NumberColumn(width="small")
+        }
+    )
+
+    # --- D. ショット分析 (個別選択時のみ) ---
     if not is_league_mode:
         st.divider()
         st.write(f"## 🏀 {sel_team_name} ショット分析")
