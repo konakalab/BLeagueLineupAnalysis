@@ -484,11 +484,11 @@ with tab1:
     plot_df_p = output_p_full.copy()
     if is_league_mode:
         plot_df_p['display_color'] = plot_df_p['HensatiOFF']
-        plot_df_p['display_text'] = plot_df_p['選手名']
+        plot_df_p['display_text'] = plot_df_p['PlayerNameJ']
         op_p = 0.8
     else:
         plot_df_p['display_color'] = plot_df_p.apply(lambda x: x['HensatiOFF'] if x['is_selected'] else np.nan, axis=1)
-        plot_df_p['display_text'] = plot_df_p.apply(lambda x: x['選手名'] if x['is_selected'] else "", axis=1)
+        plot_df_p['display_text'] = plot_df_p.apply(lambda x: x['PlayerNameJ'] if x['is_selected'] else "", axis=1)
         op_p = 1.0
 
     fig_p = px.scatter(
@@ -512,11 +512,11 @@ with tab1:
     plot_df_eff = output_p_full.copy()
     if is_league_mode:
         plot_df_eff['color_val'] = plot_df_eff['得点乖離']
-        plot_df_eff['text_val'] = plot_df_eff['選手名']
+        plot_df_eff['text_val'] = plot_df_eff['PlayerNameJ']
         op_eff = 0.8
     else:
         plot_df_eff['color_val'] = plot_df_eff.apply(lambda x: x['得点乖離'] if x['is_selected'] else np.nan, axis=1)
-        plot_df_eff['text_val'] = plot_df_eff.apply(lambda x: x['選手名'] if x['is_selected'] else "", axis=1)
+        plot_df_eff['text_val'] = plot_df_eff.apply(lambda x: x['PlayerNameJ'] if x['is_selected'] else "", axis=1)
         op_eff = 1.0
 
     fig_eff = px.scatter(
