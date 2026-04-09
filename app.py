@@ -188,8 +188,12 @@ def draw_calibration_plot(df_selected, title_suffix):
 
     fig.update_yaxes(title_text="試投数", row=1, col=1)
     fig.update_yaxes(title_text="実際の成功率", row=2, col=1, range=[0, 1], dtick=0.2)
-    fig.update_xaxes(title_text="ショット難易度評価(位置のみに基づく)", row=2, col=1)
-
+    fig.update_xaxes(
+        title_text="ショット難易度評価(位置のみに基づく)", 
+        row=2, col=1,
+        tickangle=45,          # 45度回転
+        tickfont=dict(size=10) # 少し小さくすると重なりにくい
+    )
     st.plotly_chart(fig, use_container_width=True)
     
 # --- 統計集計用の関数 (再定義) ---
