@@ -208,11 +208,6 @@ def draw_calibration_plot(df_selected, title_suffix):
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# 全データからFT平均を算出
-total_fta = df_shot['FTA'].sum()
-total_ftm = df_shot['FTM'].sum()
-league_ft_avg = total_ftm / total_fta if total_fta > 0 else 0.75
-
 # --- 統計集計用の関数 (再定義) ---
 def aggregate_stats(df_sub, label, ft_avg): # ft_avg を追加
     if df_sub.empty:
@@ -392,6 +387,11 @@ def draw_shot_chart(player_shots, player_name):
     
 # 4. 関数呼び出し側でも df_shot として受け取る
 df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
+
+# 全データからFT平均を算出
+total_fta = df_shot['FTA'].sum()
+total_ftm = df_shot['FTM'].sum()
+league_ft_avg = total_ftm / total_fta if total_fta > 0 else 0.75
 
 # --- 4. メインタイトル ---
 st.title(f"🏀 Bリーグ選手評価：{sel_team_name if 'sel_team_name' in locals() else ''}")
