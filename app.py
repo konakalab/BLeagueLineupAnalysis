@@ -530,12 +530,7 @@ with tab1:
     # 1. データ準備
     plot_df_eff = output_p_full.copy()
     
-    # 【最終手段】表示用の文字列をあらかじめPython側で作成する
-    # これにより、Plotlyの数値フォーマット機能が効かないバグを物理的に回避します
-    plot_df_eff['disp_pts'] = plot_df_eff['実得点'].map(lambda x: f"{x:,.0f}")
-    plot_df_eff['disp_xpts'] = plot_df_eff['得点期待値'].map(lambda x: f"{x:,.1f}")
-    plot_df_eff['disp_diff'] = plot_df_eff['得点期待値との差'].map(lambda x: f"{x:+.1f}")
-
+    # 既存のロジックに従い、表示グループとラベルを設定
     if is_league_mode:
         plot_df_eff['DisplayGroup'] = sel_league
         plot_df_eff['eff_label'] = ""
@@ -545,7 +540,7 @@ with tab1:
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
     # 2. 散布図の作成
-    # hover_dataを完全に空にして、Plotlyの自動Tooltipを無効化
+    # hover_dataを完全にNoneにして、Plotlyの自動Tooltipを初期化します
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
@@ -555,19 +550,22 @@ with tab1:
         text='eff_label', 
         hover_name='PlayerNameJ',
         color_discrete_map=color_map,
-        hover_data=[] # 空リストで自動Tooltipを殺す
+        hover_data=None 
     )
     
-    # 3. ツールチップの強制上書き
-    # customdataとして「事前に文字列化した値」を渡します
+    # 3. デザインとツールチップの完全制御
+    # %{x} と %{y} を直接使うことで、データの取り違えを防ぎつつ、
+    # フォーマット指定（:.1f）を確実に適用させます
     fig_eff.update_traces(
-        customdata=plot_df_eff[['disp_pts', 'disp_xpts', 'disp_diff', 'TotalApps']],
+        # customdataには、x, y 以外の「得点期待値」と「TotalApps」だけを渡します
+        customdata=plot_df_eff[['得点期待値', 'TotalApps']],
         hovertemplate=(
             "<b>%{hovertext}</b><br>" +
-            "実得点(Pts): %{customdata[0]}<br>" + 
-            "得点期待値(xPts): %{customdata[1]}<br>" + 
-            "得点期待値との差(Pts-xPts): %{customdata[2]}<br>" + 
-            "合計プレイ数: %{customdata[3]}<extra></extra>"
+            "実得点(Pts): %{x:,.0f}<br>" +
+            "得点期待値(xPts): %{customdata[0]:.1f}<br>" + 
+            "得点期待値との差(Pts-xPts): %{y:+.1f}<br>" + # %{y}に直接フォーマットをかける
+            "合計プレイ数: %{customdata[1]:d}" +
+            "<extra></extra>"
         ),
         marker=dict(
             opacity=opacity_val, 
