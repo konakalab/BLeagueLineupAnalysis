@@ -523,13 +523,14 @@ with tab1:
 
     # ==========================================
     # B. 新設：得点ボリューム vs 得点効率 (Pts vs Diff)
-    # ※色の設定（color_map）を既存のグラフAと完全に一致させます
+    # ※色の設定（color_map）、ラベル（背番号・中央）、枠線なし設定を既存のグラフAと完全に統一させます
     # ==========================================
     st.divider()
     st.write(f"### 得点ボリューム vs 得点効率 ({sel_team_name})")
 
     # 1. データ準備：既存の df_all_p と同じロジックで色のグループ分けを行う
-    plot_df_eff = output_p_full.copy()
+    plot_df_eff = output_p_full.copy() # 380行目で計算済みのデータを使用
+    
     if is_league_mode:
         plot_df_eff['DisplayGroup'] = sel_league
         # 既存のリーグ全体用ラベルルールに準拠（空文字）
@@ -537,8 +538,8 @@ with tab1:
     else:
         # 既存のチーム個別用ロジック：選択チームか「その他」か
         plot_df_eff['DisplayGroup'] = plot_df_eff['is_selected'].map({True: sel_team_name, False: 'その他'})
-        # 既存のラベルルール：選択チームの選手名のみ表示
-        plot_df_eff['eff_label'] = plot_df_eff.apply(lambda x: x['PlayerNameJ'] if x['is_selected'] else "", axis=1)
+        # 【統一ポイント】ラベルルール：既存のグラフAと同じ「背番号（PlayerNo）」を表示
+        plot_df_eff['eff_label'] = plot_df_eff.apply(lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1)
         # 既存の重なり順ルール：選択チームを前面（最後）に持ってくる
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
@@ -547,16 +548,16 @@ with tab1:
         plot_df_eff, x='実得点', y='得点乖離', 
         color='DisplayGroup',       # 既存のグループ分けを使用
         size='MarkerSize',          # 既存のサイズ定義を使用
-        text='eff_label', 
+        text='eff_label',           # 背番号をテキストとして指定
         hover_name='PlayerNameJ',
         color_discrete_map=color_map, # 既存の color_map (#EF553B, #E5ECF6等) を適用
         hover_data={'実得点': ':,.0f', '得点期待値': ':,.1f', '得点乖離': ':+.1f', 'TotalApps': True, 'DisplayGroup': False}
     )
     
-    # 3. デザイン設定：既存の opacity_val を適用し、枠線を一致させる
+    # 3. デザイン設定：既存の opacity_val を適用し、枠線なし（width=0）、テキスト中央（middle center）を一致させる
     fig_eff.update_traces(
-        marker=dict(opacity=opacity_val, line=dict(width=1, color='DarkSlateGrey')), 
-        textposition='top center'
+        marker=dict(opacity=opacity_val, line=dict(width=0)), # 【統一ポイント】不透明度と枠線なし
+        textposition='middle center'                       # 【統一ポイント】背番号を中央に配置
     )
     
     fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値通り")
