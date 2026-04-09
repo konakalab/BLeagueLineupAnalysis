@@ -209,7 +209,7 @@ def aggregate_stats(df_sub, label):
     # Bリーグ公式サイトの表示順に準拠
     return {
         "区分": label,
-        "Pts": pts
+        "Pts": pts,
         "FGM": fgm,
         "FGA": fga,
         "FG%": calc_pct(fgm, fga),
@@ -221,7 +221,7 @@ def aggregate_stats(df_sub, label):
         "3FG%": calc_pct(_3fgm, _3fga),
         "FTM": ftm,
         "FTA": fta,
-        "FT%": calc_pct(ftm, fta),
+        "FT%": calc_pct(ftm, fta)
     }
 
 def draw_shot_chart(player_shots, player_name):
