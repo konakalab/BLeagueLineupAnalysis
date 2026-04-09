@@ -523,28 +523,24 @@ with tab1:
 
     # ==========================================
     # B. 新設：実得点 vs 得点期待値との差 (Pts vs Diff)
-    # ※色の設定（color_map）、ラベル（背番号・中央）、枠線なし設定を既存のグラフAと完全に統一させます
+    # ※ValueErrorを回避しつつ、デザイン・数値を完全制御します
     # ==========================================
     st.divider()
     st.write(f"### 実得点と得点期待値との差 ({sel_team_name})")
 
-    # 1. データ準備：既存の df_all_p と同じロジックで色のグループ分けを行う
-    plot_df_eff = output_p_full.copy() # 380行目で計算済みのデータを使用
+    # 1. データ準備：既存の df_all_p と同じロジックを適用
+    plot_df_eff = output_p_full.copy()
     
     if is_league_mode:
         plot_df_eff['DisplayGroup'] = sel_league
-        # 既存のリーグ全体用ラベルルールに準拠（空文字）
         plot_df_eff['eff_label'] = ""
     else:
-        # 既存のチーム個別用ロジック：選択チームか「その他」か
         plot_df_eff['DisplayGroup'] = plot_df_eff['is_selected'].map({True: sel_team_name, False: 'その他'})
-        # 【統一ポイント】ラベルルール：既存のグラフAと同じ「背番号（PlayerNo）」を表示
         plot_df_eff['eff_label'] = plot_df_eff.apply(lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1)
-        # 既存の重なり順ルール：選択チームを前面（最後）に持ってくる
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
     # 2. 散布図の作成
-    # ValueErrorを物理的に回避するため、px.scatter内ではtooltip関連の設定(labels, hover_data)を一切行いません
+    # 【最重要】ValueError回避のため、px.scatter内では hover_data を指定しません
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
@@ -553,12 +549,29 @@ with tab1:
         size='MarkerSize',
         text='eff_label', 
         hover_name='PlayerNameJ',
-        color_discrete_map=color_map,
-        # ここでは余計な処理をさせず、最小限の列だけを渡します
-        hover_data=['得点期待値', 'TotalApps'] 
+        color_discrete_map=color_map
     )
-        
-    # レイアウトの最終調整
+    
+    # 3. ツールチップとマーカーデザインの定義
+    # customdataとして使用したい列をここで直接渡すことで、内部エラーを防ぎます
+    fig_eff.update_traces(
+        customdata=plot_df_eff[['得点期待値', 'TotalApps']],
+        hovertemplate=(
+            "<b>%{hovertext}</b><br>" +
+            "実得点(Pts): %{x:,.0f}<br>" +
+            "得点期待値(xPts): %{customdata[0]:.1f}<br>" + 
+            "得点期待値との差(Pts-xPts): %{y:+.1f}<br>" + 
+            "合計プレイ数: %{customdata[1]:d}" +
+            "<extra></extra>"
+        ),
+        marker=dict(
+            opacity=opacity_val, 
+            line=dict(width=0)       # 枠線なし（上のグラフと統一）
+        ),
+        textposition='middle center'  # 背番号を中央に配置（上のグラフと統一）
+    )
+    
+    # 4. レイアウト調整
     fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値通り")
     fig_eff.update_layout(
         height=600, 
