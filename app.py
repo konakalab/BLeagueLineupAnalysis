@@ -110,14 +110,17 @@ def draw_calibration_plot(df_selected, title_suffix):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                         vertical_spacing=0.05, row_heights=[0.3, 0.7])
 
+    # 1. Binの設定
     bin_size = 0.05
     bins = np.arange(0, 1 + bin_size, bin_size)
-    mid_points = (bins[:-1] + bins[1:]) / 2
 
     shot_types = [
         {'label': '2pt', 'codes': [3, 4, 5, 6], 'color': 'rgba(31, 119, 180, 0.5)', 'edge': 'rgb(31, 119, 180)'},
         {'label': '3pt', 'codes': [1, 2], 'color': 'rgba(214, 39, 40, 0.5)', 'edge': 'rgb(214, 39, 40)'}
     ]
+
+    # ✨ 全ての階級ラベルを事前に作成（横軸の並び順を固定するため）
+    all_bin_labels = [f"{bins[i]:.2f}-{bins[i+1]:.2f}" for i in range(len(bins)-1)]
 
     for stype in shot_types:
         df_sub = df_selected[df_selected['ActionCD1'].isin(stype['codes'])].copy()
@@ -128,64 +131,62 @@ def draw_calibration_plot(df_selected, title_suffix):
         y_prob = df_sub['xG_league']
         
         bin_indices = np.digitize(y_prob, bins) - 1
-        counts, actuals, m_pts, hover_range = [], [], [], []
+        counts_dict = {label: 0 for label in all_bin_labels}
+        actuals_dict = {label: None for label in all_bin_labels}
 
         for i in range(len(bins)-1):
+            label = all_bin_labels[i]
             mask = (bin_indices == i)
             if mask.sum() > 0:
-                counts.append(mask.sum())
-                actuals.append(y_true[mask].mean())
-                m_pts.append(mid_points[i])
-                # 各ポイントに「0.30-0.35」のような文字列を持たせる
-                hover_range.append(f"{bins[i]:.2f}-{bins[i+1]:.2f}")
+                counts_dict[label] = mask.sum()
+                actuals_dict[label] = y_true[mask].mean()
+
+        # データが存在する階級のみ抽出
+        plot_labels = [l for l in all_bin_labels if counts_dict[l] > 0 or actuals_dict[l] is not None]
+        plot_counts = [counts_dict[l] for l in plot_labels]
+        plot_actuals = [actuals_dict[l] for l in plot_labels]
 
         # --- 上段：本数 ---
         fig.add_trace(go.Bar(
-            x=m_pts, y=counts, 
+            x=plot_labels, y=plot_counts, 
             name=f"{stype['label']} 試投数",
-            customdata=hover_range,
             marker=dict(color=stype['color'], line=dict(color=stype['edge'], width=1)),
             offsetgroup='shared',
-            width=bin_size * 0.8,
-            # ✨ <extra>を空に、ヘッダーを customdata で上書き
-            hovertemplate="<b>%{customdata}</b><br>試投数: %{y}本<extra></extra>" 
+            width=0.8,
+            hovertemplate="%{y}本<extra></extra>" 
         ), row=1, col=1)
 
         # --- 下段：実績 ---
         fig.add_trace(go.Scatter(
-            x=m_pts, y=actuals, mode='lines+markers',
+            x=plot_labels, y=plot_actuals, mode='lines+markers',
             name=f"{stype['label']} 実績",
-            customdata=hover_range,
             line=dict(color=stype['edge'], width=2.5),
             marker=dict(size=8),
-            # ✨ ヘッダーを customdata で上書き
-            hovertemplate="<b>%{customdata}</b><br>成功率: %{y:.1%}<extra></extra>"
+            hovertemplate="%{y:.1%}<extra></extra>"
         ), row=2, col=1)
 
-    # 理想線 (ホバー除外)
+    # 理想線 (x軸が文字列のため、始点と終点のラベルを指定)
     fig.add_trace(go.Scatter(
-        x=[0, 1], y=[0, 1], mode='lines', name='平均',
+        x=[all_bin_labels[0], all_bin_labels[-1]], y=[0, 1], 
+        mode='lines', name='リーグ平均',
         line=dict(color='rgba(100, 100, 100, 0.5)', dash='dash'),
         hoverinfo='skip'
     ), row=2, col=1)
 
-    # --- 💡 ここからが「一番上の数値を消す」決定版の設定 ---
     fig.update_layout(
+        title=f"<b>2FG/3FG 成功確率詳細分析：{title_suffix}</b>",
+        height=600, template="plotly_white",
+        barmode='overlay',
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         hovermode="x unified",
-        # 各トレースのタイトルを表示させない設定
-        hoverlabel=dict(namelength=0),
-        # 共通X軸のヘッダーテキストを完全に隠す（フォントサイズ0のハック）
-        xaxis=dict(hoverformat=''), 
-        xaxis2=dict(hoverformat=''),
+        # ✨ X軸の並び順を数値順（定義順）に強制固定
+        xaxis2=dict(categoryorder='array', categoryarray=all_bin_labels),
+        margin=dict(l=50, r=20, t=80, b=50)
     )
-
-    # 💡 さらに、各項目のホバーで「同じ範囲」が重複表示されないよう、
-    # 最初のトレース以外からは「範囲: 」の文字を消すなどの微調整も可能ですが、
-    # 今回はシンプルに「全ての項目の1行目に範囲を出す」ことで実質的なタイトルとします。
 
     fig.update_yaxes(title_text="試投数", row=1, col=1)
     fig.update_yaxes(title_text="実際の成功率", row=2, col=1, range=[0, 1], dtick=0.2)
-    fig.update_xaxes(title_text="ショット難易度評価(位置のみに基づく)", row=2, col=1, range=[0, 1], dtick=0.1)
+    fig.update_xaxes(title_text="ショット難易度評価(位置のみに基づく)", row=2, col=1)
 
     st.plotly_chart(fig, use_container_width=True)
     
