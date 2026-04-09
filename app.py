@@ -551,7 +551,20 @@ with tab1:
         text='eff_label',           # 背番号をテキストとして指定
         hover_name='PlayerNameJ',
         color_discrete_map=color_map, # 既存の color_map (#EF553B, #E5ECF6等) を適用
-        hover_data={'実得点': ':,.0f', '得点期待値': ':,.1f', '得点期待値との差': ':,+.1f', 'TotalApps': True, 'DisplayGroup': False},
+        hover_data={# 表示する項目とフォーマット（ラベル名で指定）
+            '実得点(Pts)': ':,.0f',
+            '得点期待値(xPts)': ':,.1f',       # 小数点第一位
+            '得点期待値との差(Pts-xPts)': ':+.1f', # 符号付き・小数点第一位
+            '合計プレイ数': ':d',
+            
+            # --- 不要な項目を完全に非表示にする ---
+            'DisplayGroup': False,
+            'MarkerSize': False,
+            'eff_label': False,
+            '実得点': False,           # 重複表示を防ぐため元キーもFalse
+            '得点期待値': False,
+            '得点期待値との差': False,
+            'TotalApps': False},
         labels={
             '実得点': '実得点(Pts)', 
             '得点期待値': '得点期待値(xPts)', 
