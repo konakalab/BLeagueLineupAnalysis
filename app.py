@@ -128,7 +128,7 @@ def draw_calibration_plot(df_selected, title_suffix):
         y_prob = df_sub['xG_league']
         
         bin_indices = np.digitize(y_prob, bins) - 1
-        counts, actuals, m_pts, hover_txt = [], [], [], []
+        counts, actuals, m_pts, hover_range = [], [], [], []
 
         for i in range(len(bins)-1):
             mask = (bin_indices == i)
@@ -136,56 +136,53 @@ def draw_calibration_plot(df_selected, title_suffix):
                 counts.append(mask.sum())
                 actuals.append(y_true[mask].mean())
                 m_pts.append(mid_points[i])
-                # ✨ ホバー用の範囲文字列を作成
-                hover_txt.append(f"{bins[i]:.2f}-{bins[i+1]:.2f}")
+                # 各ポイントに「0.30-0.35」のような文字列を持たせる
+                hover_range.append(f"{bins[i]:.2f}-{bins[i+1]:.2f}")
 
         # --- 上段：本数 ---
         fig.add_trace(go.Bar(
             x=m_pts, y=counts, 
             name=f"{stype['label']} 試投数",
-            customdata=hover_txt, # ここに範囲文字列を持たせる
+            customdata=hover_range,
             marker=dict(color=stype['color'], line=dict(color=stype['edge'], width=1)),
             offsetgroup='shared',
             width=bin_size * 0.8,
-            # ✨ 1行目に範囲を表示。 <extra>タグの中身を空にすることで右側のラベルを消す
-            hovertemplate="<b>範囲: %{customdata}</b><br>%{y}本<extra></extra>" 
+            # ✨ <extra>を空に、ヘッダーを customdata で上書き
+            hovertemplate="<b>%{customdata}</b><br>試投数: %{y}本<extra></extra>" 
         ), row=1, col=1)
 
         # --- 下段：実績 ---
         fig.add_trace(go.Scatter(
             x=m_pts, y=actuals, mode='lines+markers',
             name=f"{stype['label']} 実績",
-            customdata=hover_txt,
+            customdata=hover_range,
             line=dict(color=stype['edge'], width=2.5),
             marker=dict(size=8),
-            # ✨ 同じく1行目に範囲を表示
-            hovertemplate="<b>範囲: %{customdata}</b><br>%{y:.1%}<extra></extra>"
+            # ✨ ヘッダーを customdata で上書き
+            hovertemplate="<b>%{customdata}</b><br>成功率: %{y:.1%}<extra></extra>"
         ), row=2, col=1)
 
-    # 理想線
+    # 理想線 (ホバー除外)
     fig.add_trace(go.Scatter(
-        x=[0, 1], y=[0, 1], mode='lines', name='リーグ平均',
+        x=[0, 1], y=[0, 1], mode='lines', name='平均',
         line=dict(color='rgba(100, 100, 100, 0.5)', dash='dash'),
-        hoverinfo='skip' # 平均線はホバーに出さない
+        hoverinfo='skip'
     ), row=2, col=1)
 
+    # --- 💡 ここからが「一番上の数値を消す」決定版の設定 ---
     fig.update_layout(
-        title=f"<b>2FG/3FG 成功確率詳細分析：{title_suffix}</b>",
-        height=600, template="plotly_white",
-        barmode='overlay',
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        
-        # 💡 x unified設定
         hovermode="x unified",
-        
-        # 💡 ここがポイント：一番上に自動で出る「数値」を「空文字」で上書きする
-        xaxis_hoverformat="", 
-        xaxis2_hoverformat="", # shared_xaxesなので両方指定
-        
-        margin=dict(l=50, r=20, t=80, b=50)
+        # 各トレースのタイトルを表示させない設定
+        hoverlabel=dict(namelength=0),
+        # 共通X軸のヘッダーテキストを完全に隠す（フォントサイズ0のハック）
+        xaxis=dict(hoverformat=''), 
+        xaxis2=dict(hoverformat=''),
     )
 
-    # 軸の見た目を整える
+    # 💡 さらに、各項目のホバーで「同じ範囲」が重複表示されないよう、
+    # 最初のトレース以外からは「範囲: 」の文字を消すなどの微調整も可能ですが、
+    # 今回はシンプルに「全ての項目の1行目に範囲を出す」ことで実質的なタイトルとします。
+
     fig.update_yaxes(title_text="試投数", row=1, col=1)
     fig.update_yaxes(title_text="実際の成功率", row=2, col=1, range=[0, 1], dtick=0.2)
     fig.update_xaxes(title_text="ショット難易度評価(位置のみに基づく)", row=2, col=1, range=[0, 1], dtick=0.1)
