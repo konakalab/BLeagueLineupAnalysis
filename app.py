@@ -209,7 +209,7 @@ def draw_calibration_plot(df_selected, title_suffix):
     st.plotly_chart(fig, use_container_width=True)
 
 # --- 統計集計用の関数 (再定義) ---
-def aggregate_stats(df_sub, label, ft_avg):
+def aggregate_stats(df_sub, label, ft_avg=0.75):
     if df_sub.empty:
         return {"区分": label, "Pts": 0, "xPts": 0, "FGM": 0, "FGA": 0, "FG%": 0}
 
