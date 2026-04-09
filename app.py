@@ -530,6 +530,9 @@ with tab1:
     # 1. データ準備
     plot_df_eff = output_p_full.copy()
     
+    # 【重要】y軸に使用する列を確実に作成します（app(2).pyの381行目付近の計算に準拠）
+    plot_df_eff['得点期待値との差'] = plot_df_eff['実得点'] - plot_df_eff['得点期待値']
+
     if is_league_mode:
         plot_df_eff['DisplayGroup'] = sel_league
         plot_df_eff['eff_label'] = ""
@@ -538,12 +541,11 @@ with tab1:
         plot_df_eff['eff_label'] = plot_df_eff.apply(lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1)
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
-    # 2. 散布図の作成
-    # 評価値分布(fig_p)と同じく、hover_dataにリストを渡す基本形に戻します
+    # 2. 散布図の作成（app(2).py 410行目〜の fig_p と同じ引数構成）
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
-        y='得点乖離', 
+        y='得点期待値との差', 
         color='DisplayGroup',
         size='MarkerSize',
         text='eff_label', 
@@ -552,8 +554,7 @@ with tab1:
         hover_data=['得点期待値', 'TotalApps']
     )
     
-    # 3. ツールチップとデザインの統合（update_traces）
-    # 評価値分布(fig_p)の422行目以降の設定と構造を完全に一致させています
+    # 3. ツールチップとデザイン（app(2).py 422行目〜と同じ）
     fig_eff.update_traces(
         hovertemplate=(
             "<b>%{hovertext}</b><br>" +
@@ -570,18 +571,18 @@ with tab1:
         textposition='middle center'
     )
     
-    # 4. レイアウト調整（評価値分布の432行目付近の設定を反映）
+    # 4. レイアウト調整（app(2).py 432行目〜と同じ）
     fig_eff.update_layout(
         height=750, 
         template="plotly_white", 
         xaxis=dict(title="実得点 (Total Pts)", gridcolor='lightgray', showspikes=True),
         yaxis=dict(title="得点期待値との差 (実得点 - 期待値)", gridcolor='lightgray', showspikes=True),
         plot_bgcolor='white',
-        hovermode='closest', # ガイド線のトリガー
+        hovermode='closest',
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
 
-    # ガイド線の線種設定（グラフAと同一）
+    # ガイド線の線種設定
     fig_eff.update_xaxes(spikemode="across", spikedash="dash", spikecolor="gray", spikethickness=1)
     fig_eff.update_yaxes(spikemode="across", spikedash="dash", spikecolor="gray", spikethickness=1)
 
