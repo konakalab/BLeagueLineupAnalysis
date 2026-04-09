@@ -183,47 +183,45 @@ def draw_calibration_plot(df_selected, title_suffix):
     
 # --- 統計集計用の関数 (再定義) ---
 def aggregate_stats(df_sub, label):
-    # --- 判定用フラグの作成 ---
-    # 3P: 1(成功), 2(失敗)
-    is_3p = df_sub['ActionCD1'].isin([1, 2])
-    # 2P: 3,4(成功), 5,6(失敗)
-    is_2p = df_sub['ActionCD1'].isin([3, 4, 5, 6])
-    # フィールドゴール成功: 1, 3, 4
-    is_fg_made = df_sub['ActionCD1'].isin([1, 3, 4])
-    
-    # フリースロー(FT): 7(成功), 8(失敗)
-    is_ft = df_sub['ActionCD1'].isin([7, 8])
-    is_ft_made = df_sub['ActionCD1'] == 7
+    # ActionCD1を数値型に変換
+    action_ids = pd.to_numeric(df_sub['ActionCD1'], errors='coerce')
 
-    # --- 各種本数の集計 ---
-    _3fgm, _3fga = int((is_3p & is_fg_made).sum()), int(is_3p.sum())
-    _2fgm, _2fga = int((is_2p & is_fg_made).sum()), int(is_2p.sum())
-    fgm, fga = _3fgm + _2fgm, _3fga + _2fga
+    # --- 各種フラグの作成 ---
+    is_3p = action_ids.isin([1, 2])
+    is_2p = action_ids.isin([3, 4, 5, 6])
+    is_fg = action_ids.isin([1, 2, 3, 4, 5, 6])
+    is_ft = action_ids.isin([7, 8])
     
-    ftm, fta = int(is_ft_made.sum()), int(is_ft.sum())
+    is_made = action_ids.isin([1, 3, 4, 7])
 
-    # --- 総得点(Pts)の計算 ---
-    # 3点×3PM + 2点×2PM + 1点×FTM
+    # --- 個別集計 ---
+    _3fgm, _3fga = int((is_3p & is_made).sum()), int(is_3p.sum())
+    _2fgm, _2fga = int((is_2p & is_made).sum()), int(is_2p.sum())
+    fgm, fga = int((is_fg & is_made).sum()), int(is_fg.sum())
+    ftm, fta = int((is_ft & is_made).sum()), int(is_ft.sum())
+
+    # 総得点
     pts = (_3fgm * 3) + (_2fgm * 2) + (ftm * 1)
 
-    # 確率計算用関数
+    # 確率計算
     calc_pct = lambda m, a: (m / a * 100) if a > 0 else 0.0
 
-    # --- 返り値の作成（列の並び順を調整） ---
+    # Bリーグ公式サイトの表示順に準拠
     return {
         "区分": label,
-        "Pts": pts,
+        "Pts": pts
+        "FGM": fgm,
+        "FGA": fga,
         "FG%": calc_pct(fgm, fga),
+        "2FGM": _2fgm,
+        "2FGA": _2fga,
         "2FG%": calc_pct(_2fgm, _2fga),
+        "3FGM": _3fgm,
+        "3FGA": _3fga,
         "3FG%": calc_pct(_3fgm, _3fga),
         "FTM": ftm,
         "FTA": fta,
-        "FGM": fgm,
-        "FGA": fga,
-        "2FGM": _2fgm,
-        "2FGA": _2fga,
-        "3FGM": _3fgm,
-        "3FGA": _3fga
+        "FT%": calc_pct(ftm, fta),
     }
 
 def draw_shot_chart(player_shots, player_name):
@@ -505,12 +503,15 @@ with tab1:
             st.write(f"### 📊 {p_name_only} オンコート統計まとめ")
             st.dataframe(
                 pd.DataFrame(stats_list).style.format({
+                    "Pts": "{:,.0f}"
                     "FG%": "{:.1f}%", 
                     "2FG%": "{:.1f}%", 
                     "3FG%": "{:.1f}%",
-                    "Pts": "{:,.0f}",  # カンマ区切り・整数
-                    "FTM": "{:,.0f}",
-                    "FTA": "{:,.0f}"
+                    "FT%": "{:.1f}%",
+                    "FGM": "{:,.0f}", "FGA": "{:,.0f}",
+                    "2FGM": "{:,.0f}", "2FGA": "{:,.0f}",
+                    "3FGM": "{:,.0f}", "3FGA": "{:,.0f}",
+                    "FTM": "{:,.0f}", "FTA": "{:,.0f}",
                 }), 
                 use_container_width=True, 
                 hide_index=True
