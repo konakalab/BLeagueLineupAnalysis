@@ -525,7 +525,6 @@ with tab1:
     # B. 新設：実得点 vs 得点期待値との差
     # ==========================================
     st.divider()
-    # st.write(f"### 実得点と得点期待値との差 ({sel_team_name})") # タイトルはfig内に含めるためコメントアウト
 
     # 1. データ準備
     plot_df_eff = output_p_full.copy()
@@ -534,13 +533,13 @@ with tab1:
     if is_league_mode:
         plot_df_eff['DisplayGroup'] = sel_league
         plot_df_eff['eff_label'] = ""
-        # グラフA (410行目付近) と統一
-        opacity_val_eff = 0.2
+        # グラフA (408行目付近) の opacity_val = 0.2 と完全に一致させる
+        opacity_val_eff = 0.2 
     else:
         plot_df_eff['DisplayGroup'] = plot_df_eff['is_selected'].map({True: sel_team_name, False: 'その他'})
         plot_df_eff['eff_label'] = plot_df_eff.apply(lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1)
         plot_df_eff = plot_df_eff.sort_values('is_selected')
-        # グラフA (420行目付近) と統一
+        # グラフA (421行目付近) の opacity_val = 0.4 と完全に一致させる
         opacity_val_eff = 0.4 
 
     # 2. 散布図の作成
@@ -552,11 +551,11 @@ with tab1:
         size='MarkerSize',
         text='eff_label', 
         hover_name='PlayerNameJ',
-        color_discrete_map=color_map,
+        color_discrete_map=color_map, # Aと同じものを使用
         hover_data=['得点期待値', 'TotalApps']
     )
 
-    # 3. ツールチップとデザイン（既存の fig_p の仕様に準拠）
+    # 3. ツールチップとデザイン
     fig_eff.update_traces(
         hovertemplate=(
             "<b>%{hovertext}</b><br>" +
@@ -567,13 +566,13 @@ with tab1:
             "<extra></extra>"
         ),
         marker=dict(
-            opacity=opacity_val_eff, # Aと統一した変数を使用
+            opacity=opacity_val_eff, # ここでAと同じ数値(0.4 or 0.2)を確実に適用
             line=dict(width=0)
         ),
         textposition='middle center'
     )
 
-    # 4. レイアウト調整（fig_p の 426-435行目と完全に一致する設定）
+    # 4. レイアウト調整（タイトル・ガイド線など）
     fig_eff.update_layout(
         title={
             'text': f"<b>{sel_team_name}</b> 得点効率分布 <span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 
@@ -588,7 +587,6 @@ with tab1:
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
 
-    # 基準線の追加（fig_p の 450行目付近と同じ点線の仕様）
     fig_eff.add_hline(y=0, line_dash="dot", line_color="gray")
     
     st.plotly_chart(fig_eff, use_container_width=True)
