@@ -462,6 +462,9 @@ tab1, tab2, tab_xP_model, tab3 = st.tabs(["選手分析", "ラインナップ分
 
 # --- タブ1: 選手分析 ---
 with tab1:
+    # ==========================================
+    # A. 選手評価分布 (HensatiOFF vs HensatiDEF)
+    # ==========================================
     df_all_p = df_player.copy()
     df_all_p['TotalApps'] = df_all_p['OFFApps'] + df_all_p['DEFApps']
     df_all_p['MarkerSize'] = np.sqrt(df_all_p['TotalApps'] + 1)
@@ -518,6 +521,43 @@ with tab1:
     # 散布図の表示
     st.plotly_chart(fig_p, use_container_width=True)
 
+    # ==========================================
+    # B. 新設：得点ボリューム vs 得点効率 (Pts vs Diff)
+    # ※既存の変数名・分岐条件を利用して追加します
+    # ==========================================
+    st.divider()
+    st.write(f"### 得点ボリューム vs 得点効率 ({sel_team_name})")
+
+    # output_p_full（380行目で計算済み）を使用し、既存のDisplayGroupロジックを継承
+    plot_df_eff = output_p_full.copy()
+    plot_df_eff['DisplayGroup'] = plot_df_eff['is_selected'].map({True: sel_team_name, False: 'その他'}) if not is_league_mode else sel_league
+    
+    # 色付け用：選択選手は「得点乖離」の連続値、非選択はNaN（グレーアウト）
+    plot_df_eff['eff_color'] = plot_df_eff.apply(lambda x: x['得点乖離'] if x['is_selected'] else np.nan, axis=1)
+    # ラベル用：選択選手のみPlayerNameJを表示
+    plot_df_eff['eff_label'] = plot_df_eff.apply(lambda x: x['PlayerNameJ'] if x['is_selected'] else "", axis=1)
+
+    fig_eff = px.scatter(
+        plot_df_eff, x='実得点', y='得点乖離', text='eff_label', color='eff_color',
+        color_continuous_scale='RdBu_r', color_continuous_midpoint=0,
+        hover_name='PlayerNameJ',
+        hover_data={'実得点': ':,.0f', '得点期待値': ':,.1f', '得点乖離': ':+.1f', 'TotalApps': True}
+    )
+    
+    # 既存のグラフAと同じDarkSlateGreyの枠線とサイズ設定
+    fig_eff.update_traces(marker=dict(size=12, opacity=0.8, line=dict(width=1, color='DarkSlateGrey')), textposition='top center')
+    
+    # 既存の色設定（#E5ECF6）に準拠したグレーアウト処理
+    if not is_league_mode:
+        fig_eff.update_traces(
+            marker=dict(color='rgba(229, 236, 246, 0.4)'), 
+            selector=lambda t: t.marker.color is None or (isinstance(t.marker.color, np.ndarray) and np.isnan(t.marker.color).all())
+        )
+    
+    fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値通り")
+    fig_eff.update_layout(height=600, template="plotly_white", xaxis_title="実得点 (Total Pts)", yaxis_title="得点乖離 (実得点 - 期待値)")
+    st.plotly_chart(fig_eff, use_container_width=True)
+    
     
     # --- Tab 1 内: ショット分析セクション ---
     if not is_league_mode:
