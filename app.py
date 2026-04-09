@@ -192,6 +192,11 @@ def draw_calibration_plot(df_selected, title_suffix):
         showgrid=True,             # ✨ グリッドを表示
         gridcolor='rgba(200, 200, 200, 0.3)' # 薄いグレーで邪魔にならないように
     )
+    fig.update_xaxes(
+        row=1, col=1,
+        showgrid=True,             # ✨ X軸に対する垂直グリッドを表示
+        gridcolor='rgba(200, 200, 200, 0.3)'
+    )
     fig.update_yaxes(title_text="実際の成功率", row=2, col=1, range=[0, 1], dtick=0.2)
     fig.update_xaxes(
         title_text="ショット難易度評価(位置のみに基づく)", 
