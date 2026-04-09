@@ -582,13 +582,7 @@ with tab1:
         ),
         textposition='middle center'  # 背番号をマーカー中央に配置（上のグラフと統一）
     )
-    
-    # マーカーデザインを既存のグラフAと完全に一致させる
-    fig_eff.update_traces(
-        marker=dict(opacity=opacity_val, line=dict(width=0)),
-        textposition='middle center' # 背番号を中央に
-    )
-    
+        
     fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値通り")
     fig_eff.update_layout(
         height=600, 
