@@ -536,10 +536,14 @@ with tab1:
     if is_league_mode:
         plot_df_eff['DisplayGroup'] = sel_league
         plot_df_eff['eff_label'] = ""
+        opacity_val = 0.2 
     else:
         plot_df_eff['DisplayGroup'] = plot_df_eff['is_selected'].map({True: sel_team_name, False: 'その他'})
         plot_df_eff['eff_label'] = plot_df_eff.apply(lambda r: str(int(r['PlayerNo'])) if r['is_selected'] and r['PlayerNo'] != 0 else "", axis=1)
         plot_df_eff = plot_df_eff.sort_values('is_selected')
+        # 選択チームを前面に出すための不透明度設定
+        opacity_val = 0.4 
+
 
     # 2. 散布図の作成
     fig_eff = px.scatter(
@@ -565,7 +569,7 @@ with tab1:
             "<extra></extra>"
         ),
         marker=dict(
-            opacity=0.4, 
+            opacity=opacity_val, 
             line=dict(width=0)
         ),
         textposition='middle center'
