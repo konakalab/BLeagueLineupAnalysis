@@ -591,6 +591,7 @@ with tab1:
         st.dataframe(
             pd.DataFrame(stats_list).style.format({
                 "Pts": "{:,.0f}",
+                "xPts": "{:,.1f}",
                 "FGM": "{:,.0f}", "FGA": "{:,.0f}", "FG%": "{:.1f}%",
                 "2FGM": "{:,.0f}", "2FGA": "{:,.0f}", "2FG%": "{:.1f}%",
                 "3FGM": "{:,.0f}", "3FGA": "{:,.0f}", "3FG%": "{:.1f}%",
