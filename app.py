@@ -565,7 +565,7 @@ with tab1:
             "<extra></extra>"
         ),
         marker=dict(
-            opacity=opacity_val, 
+            opacity=0.4, 
             line=dict(width=0)
         ),
         textposition='middle center'
