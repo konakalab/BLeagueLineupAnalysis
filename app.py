@@ -540,7 +540,7 @@ with tab1:
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
     # 2. 散布図の作成
-    # 【最重要】ValueError回避のため、px.scatter内では hover_data を指定しません
+    # ここではデータのマッピング（x, y, color, size, text）だけに絞ります
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
@@ -549,26 +549,30 @@ with tab1:
         size='MarkerSize',
         text='eff_label', 
         hover_name='PlayerNameJ',
-        color_discrete_map=color_map
+        color_discrete_map=color_map,
+        # 【重要】hover_data はここでは指定せず、None（デフォルト）にするか空にします
+        hover_data=None 
     )
     
-    # 3. ツールチップとマーカーデザインの定義
-    # customdataとして使用したい列をここで直接渡すことで、内部エラーを防ぎます
+    # 3. デザイン・ツールチップの「完全定義」
+    # customdata に表示したいすべての列を明示的に渡し、それだけを参照します
     fig_eff.update_traces(
-        customdata=plot_df_eff[['得点期待値', 'TotalApps']],
+        # y軸の「得点期待値との差」も customdata に含めて管理するとより確実です
+        customdata=plot_df_eff[['得点期待値', '得点期待値との差', 'TotalApps']],
         hovertemplate=(
             "<b>%{hovertext}</b><br>" +
             "実得点(Pts): %{x:,.0f}<br>" +
             "得点期待値(xPts): %{customdata[0]:.1f}<br>" + 
-            "得点期待値との差(Pts-xPts): %{y:+.1f}<br>" + 
-            "合計プレイ数: %{customdata[1]:d}" +
+            # %{y} ではなく、customdata経由で小数点1位を指定
+            "得点期待値との差(Pts-xPts): %{customdata[1]:+.1f}<br>" + 
+            "合計プレイ数: %{customdata[2]:d}" +
             "<extra></extra>"
         ),
         marker=dict(
             opacity=opacity_val, 
-            line=dict(width=0)       # 枠線なし（上のグラフと統一）
+            line=dict(width=0)
         ),
-        textposition='middle center'  # 背番号を中央に配置（上のグラフと統一）
+        textposition='middle center'
     )
     
     # 4. レイアウト調整
