@@ -209,38 +209,37 @@ def draw_calibration_plot(df_selected, title_suffix):
     st.plotly_chart(fig, use_container_width=True)
 
 # --- 統計集計用の関数 (再定義) ---
-def aggregate_stats(df_sub, label, ft_avg): # ft_avg を追加
+def aggregate_stats(df_sub, label, ft_avg):
     if df_sub.empty:
         return {"区分": label, "Pts": 0, "xPts": 0, "FGM": 0, "FGA": 0, "FG%": 0}
 
+    # 数値型に変換
     action_ids = pd.to_numeric(df_sub['ActionCD1'], errors='coerce')
 
-    # --- フラグ作成 ---
+    # 各種フラグ
     is_3p = action_ids.isin([1, 2])
     is_2p = action_ids.isin([3, 4, 5, 6])
     is_fg = action_ids.isin([1, 2, 3, 4, 5, 6])
     is_ft = action_ids.isin([7, 8])
     is_made = action_ids.isin([1, 3, 4, 7])
 
-    # --- 数値集計 ---
+    # 数値集計
     _3fgm = int((is_3p & is_made).sum())
     _2fgm = int((is_2p & is_made).sum())
     ftm = int((is_ft & is_made).sum())
-    fta = int(is_ft.sum())
+    fta = int(is_ft.sum())  # ✨ ここを修正
     
     # 実得点
     pts = (_3fgm * 3) + (_2fgm * 2) + (ftm * 1)
 
-    # --- 期待値(xPts)の計算 ---
-    # FG期待値: (ActionCDに応じた点数) * (xG_league)
+    # 期待値(xPts)の計算
     df_calc = df_sub.copy()
-    df_calc['val'] = df_calc['ActionCD1'].apply(lambda x: 3 if x in [1, 2] else (2 if x in [3,4,5,6] else 0))
+    # 3pt=3, 2pt=2, その他=0
+    df_calc['val'] = action_ids.apply(lambda x: 3 if x in [1, 2] else (2 if x in [3,4,5,6] else 0))
     expected_fg_pts = (df_calc['val'] * df_calc['xG_league']).sum()
-    # FT期待値: 試投数 * リーグ平均成功率
-    expected_ft_pts = fta * ft_avg
+    expected_ft_pts = fta * ft_avg # ✨ 修正したftaを使用
     total_xpts = expected_fg_pts + expected_ft_pts
 
-    # (既存の他スタッツ計算は維持)
     fgm, fga = int((is_fg & is_made).sum()), int(is_fg.sum())
     calc_pct = lambda m, a: (m / a * 100) if a > 0 else 0.0
 
@@ -248,7 +247,6 @@ def aggregate_stats(df_sub, label, ft_avg): # ft_avg を追加
         "区分": label,
         "Pts": pts,
         "xPts": total_xpts,
-        "Diff": pts - total_xpts,
         "FGM": fgm, "FGA": fga, "FG%": calc_pct(fgm, fga),
         "2FGM": _2fgm, "2FGA": int(is_2p.sum()), "2FG%": calc_pct(_2fgm, int(is_2p.sum())),
         "3FGM": _3fgm, "3FGA": int(is_3p.sum()), "3FG%": calc_pct(_3fgm, int(is_3p.sum())),
