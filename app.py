@@ -183,23 +183,47 @@ def draw_calibration_plot(df_selected, title_suffix):
     
 # --- 統計集計用の関数 (再定義) ---
 def aggregate_stats(df_sub, label):
-    # ActionCD1 の定義に基づいてシュート種別を判定 (Bリーグ等の一般的なデータ構造)
-    # 3P成功:1, 3P失敗:2, 2P成功:3,4, 2P失敗:5,6 と仮定
+    # --- 判定用フラグの作成 ---
+    # 3P: 1(成功), 2(失敗)
     is_3p = df_sub['ActionCD1'].isin([1, 2])
+    # 2P: 3,4(成功), 5,6(失敗)
     is_2p = df_sub['ActionCD1'].isin([3, 4, 5, 6])
-    is_made = df_sub['ActionCD1'].isin([1, 3, 4])
+    # フィールドゴール成功: 1, 3, 4
+    is_fg_made = df_sub['ActionCD1'].isin([1, 3, 4])
     
-    _3fgm, _3fga = int((is_3p & is_made).sum()), int(is_3p.sum())
-    _2fgm, _2fga = int((is_2p & is_made).sum()), int(is_2p.sum())
+    # フリースロー(FT): 7(成功), 8(失敗)
+    is_ft = df_sub['ActionCD1'].isin([7, 8])
+    is_ft_made = df_sub['ActionCD1'] == 7
+
+    # --- 各種本数の集計 ---
+    _3fgm, _3fga = int((is_3p & is_fg_made).sum()), int(is_3p.sum())
+    _2fgm, _2fga = int((is_2p & is_fg_made).sum()), int(is_2p.sum())
     fgm, fga = _3fgm + _2fgm, _3fga + _2fga
     
+    ftm, fta = int(is_ft_made.sum()), int(is_ft.sum())
+
+    # --- 総得点(Pts)の計算 ---
+    # 3点×3PM + 2点×2PM + 1点×FTM
+    pts = (_3fgm * 3) + (_2fgm * 2) + (ftm * 1)
+
+    # 確率計算用関数
     calc_pct = lambda m, a: (m / a * 100) if a > 0 else 0.0
-    
+
+    # --- 返り値の作成（列の並び順を調整） ---
     return {
         "区分": label,
-        "FGM": fgm, "FGA": fga, "FG%": calc_pct(fgm, fga),
-        "2FGM": _2fgm, "2FGA": _2fga, "2FG%": calc_pct(_2fgm, _2fga),
-        "3FGM": _3fgm, "3FGA": _3fga, "3FG%": calc_pct(_3fgm, _3fga)
+        "Pts": pts,
+        "FG%": calc_pct(fgm, fga),
+        "2FG%": calc_pct(_2fgm, _2fga),
+        "3FG%": calc_pct(_3fgm, _3fga),
+        "FTM": ftm,
+        "FTA": fta,
+        "FGM": fgm,
+        "FGA": fga,
+        "2FGM": _2fgm,
+        "2FGA": _2fga,
+        "3FGM": _3fgm,
+        "3FGA": _3fga
     }
 
 def draw_shot_chart(player_shots, player_name):
@@ -479,7 +503,18 @@ with tab1:
             stats_list.append(aggregate_stats(df_opp_on, "3. 相手チーム(オンコート)"))
             
             st.write(f"### 📊 {p_name_only} オンコート統計まとめ")
-            st.dataframe(pd.DataFrame(stats_list).style.format({"FG%": "{:.1f}%", "2FG%": "{:.1f}%", "3FG%": "{:.1f}%"}), use_container_width=True, hide_index=True)
+            st.dataframe(
+                pd.DataFrame(stats_list).style.format({
+                    "FG%": "{:.1f}%", 
+                    "2FG%": "{:.1f}%", 
+                    "3FG%": "{:.1f}%",
+                    "Pts": "{:,.0f}",  # カンマ区切り・整数
+                    "FTM": "{:,.0f}",
+                    "FTA": "{:,.0f}"
+                }), 
+                use_container_width=True, 
+                hide_index=True
+            )
 
             # チャート表示用データの決定
             if analysis_mode == "① 選手個人のショット":
