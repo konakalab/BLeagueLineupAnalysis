@@ -437,7 +437,7 @@ df_perf = pd.DataFrame(player_performance)
 output_p_full = pd.merge(df_player, df_perf, on='PlayerID')
 output_p_full['TotalApps'] = output_p_full['OFFApps'] + output_p_full['DEFApps']
 output_p_full['MarkerSize'] = np.sqrt(output_p_full['TotalApps'] + 1)
-output_p_full['得点乖離'] = output_p_full['実得点'] - output_p_full['得点期待値']
+output_p_full['得点期待値との差'] = output_p_full['実得点'] - output_p_full['得点期待値']
 output_p_full['is_selected'] = True if (target_team_id is None) else (output_p_full['TeamID'] == target_team_id)
 # ------------------
 
