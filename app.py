@@ -388,9 +388,14 @@ def draw_shot_chart(player_shots, player_name):
 # 4. 関数呼び出し側でも df_shot として受け取る
 df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
 
-# 全データからFT平均を算出
-total_fta = df_shot['FTA'].sum()
-total_ftm = df_shot['FTM'].sum()
+# ✨ FTA列がないため、ActionCD1から集計する
+# ActionCD1: 7=FT成功, 8=FT失敗 と想定
+is_ft_all = df_shot['ActionCD1'].isin([7, 8])
+is_ft_made_all = df_shot['ActionCD1'] == 7
+
+total_fta = is_ft_all.sum()
+total_ftm = is_ft_made_all.sum()
+
 league_ft_avg = total_ftm / total_fta if total_fta > 0 else 0.75
 
 # --- 4. メインタイトル ---
