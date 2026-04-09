@@ -527,13 +527,14 @@ with tab1:
     st.divider()
     st.write(f"### 実得点と得点期待値との差 ({sel_team_name})")
 
-    # 1. データ準備（表示用の値をあらかじめ「数値」として確定させる）
+    # 1. データ準備
     plot_df_eff = output_p_full.copy()
     
-    # 型を強制し、計算誤差を排除するために事前に丸める（念押し）
-    plot_df_eff['実得点'] = pd.to_numeric(plot_df_eff['実得点']).fillna(0)
-    plot_df_eff['得点期待値'] = pd.to_numeric(plot_df_eff['得点期待値']).fillna(0)
-    plot_df_eff['得点期待値との差'] = pd.to_numeric(plot_df_eff['得点期待値との差']).fillna(0)
+    # 【最終手段】表示用の文字列をあらかじめPython側で作成する
+    # これにより、Plotlyの数値フォーマット機能が効かないバグを物理的に回避します
+    plot_df_eff['disp_pts'] = plot_df_eff['実得点'].map(lambda x: f"{x:,.0f}")
+    plot_df_eff['disp_xpts'] = plot_df_eff['得点期待値'].map(lambda x: f"{x:,.1f}")
+    plot_df_eff['disp_diff'] = plot_df_eff['得点期待値との差'].map(lambda x: f"{x:+.1f}")
 
     if is_league_mode:
         plot_df_eff['DisplayGroup'] = sel_league
@@ -544,7 +545,7 @@ with tab1:
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
     # 2. 散布図の作成
-    # hover_data=None ではなく、明示的に「空」を渡して Plotly の自動Tooltipを完全に殺します
+    # hover_dataを完全に空にして、Plotlyの自動Tooltipを無効化
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
@@ -554,21 +555,19 @@ with tab1:
         text='eff_label', 
         hover_name='PlayerNameJ',
         color_discrete_map=color_map,
-        hover_data={} # 辞書を空にすることで、自動生成される項目を完全に排除します
+        hover_data=[] # 空リストで自動Tooltipを殺す
     )
     
-    # 3. ツールチップとデザインの「完全定義」
-    # ここで customdata を使わず、変数を直接指定してフォーマットを適用します
+    # 3. ツールチップの強制上書き
+    # customdataとして「事前に文字列化した値」を渡します
     fig_eff.update_traces(
-        # 明示的にデータを紐付け
-        customdata=np.stack((plot_df_eff['得点期待値'], plot_df_eff['得点期待値との差'], plot_df_eff['TotalApps']), axis=-1),
+        customdata=plot_df_eff[['disp_pts', 'disp_xpts', 'disp_diff', 'TotalApps']],
         hovertemplate=(
             "<b>%{hovertext}</b><br>" +
-            "実得点(Pts): %{x:,.0f}<br>" +
-            "得点期待値(xPts): %{customdata[0]:.1f}<br>" + 
-            "得点期待値との差(Pts-xPts): %{customdata[1]:+.1f}<br>" + 
-            "合計プレイ数: %{customdata[2]:d}" +
-            "<extra></extra>"
+            "実得点(Pts): %{customdata[0]}<br>" + 
+            "得点期待値(xPts): %{customdata[1]}<br>" + 
+            "得点期待値との差(Pts-xPts): %{customdata[2]}<br>" + 
+            "合計プレイ数: %{customdata[3]}<extra></extra>"
         ),
         marker=dict(
             opacity=opacity_val, 
@@ -578,7 +577,6 @@ with tab1:
     )
     
     # 4. レイアウト調整
-    fig_eff.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="期待値通り")
     fig_eff.update_layout(
         height=600, 
         template="plotly_white", 
