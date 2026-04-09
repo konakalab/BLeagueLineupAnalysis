@@ -386,31 +386,6 @@ def draw_shot_chart(player_shots, player_name):
 # 4. 関数呼び出し側でも df_shot として受け取る
 df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
 
-# --- データの準備 (Logic) ---
-# 1. リーグ平均FT%の算出
-is_ft_all = df_shot['ActionCD1'].isin([7, 8])
-is_ft_made_all = df_shot['ActionCD1'] == 7
-league_ft_avg = is_ft_made_all.sum() / is_ft_all.sum() if is_ft_all.sum() > 0 else 0.75
-
-# 2. 全選手の Pts / xPts を事前に一括計算
-player_performance = []
-for _, p_row in df_player.iterrows():
-    p_shots = df_shot[df_shot['PlayerID'] == p_row['PlayerID']]
-    p_stats = aggregate_stats(p_shots, p_row['PlayerNameJ'], league_ft_avg)
-    player_performance.append({
-        'PlayerID': p_row['PlayerID'],
-        '実得点': p_stats['Pts'],
-        '得点期待値': p_stats['xPts']
-    })
-
-# 3. データの統合（変数名は変更せず output_p_full として作成）
-df_perf = pd.DataFrame(player_performance)
-output_p_full = pd.merge(df_player, df_perf, on='PlayerID')
-output_p_full['TotalApps'] = output_p_full['OFFApps'] + output_p_full['DEFApps']
-output_p_full['MarkerSize'] = np.sqrt(output_p_full['TotalApps'] + 1)
-output_p_full['得点乖離'] = output_p_full['実得点'] - output_p_full['得点期待値']
-output_p_full['is_selected'] = True if (target_team_id is None) else (output_p_full['TeamID'] == target_team_id)
-
 # --- 4. メインタイトル ---
 st.title(f"🏀 Bリーグ選手評価：{sel_team_name if 'sel_team_name' in locals() else ''}")
 st.info(f"📅 分析対象期間：{analysis_period}")
@@ -438,6 +413,33 @@ if sel_team_name == "リーグ全体":
     target_team_id = None
 else:
     target_team_id = int(teams_sorted[teams_sorted['Team'] == sel_team_name]['TeamID'].iloc[0])
+
+# --- ここに貼り付け ---
+# 1. リーグ平均FT%の算出
+is_ft_all = df_shot['ActionCD1'].isin([7, 8])
+is_ft_made_all = df_shot['ActionCD1'] == 7
+league_ft_avg = is_ft_made_all.sum() / is_ft_all.sum() if is_ft_all.sum() > 0 else 0.75
+
+# 2. 全選手の Pts / xPts を事前に一括計算
+player_performance = []
+for _, p_row in df_player.iterrows():
+    p_shots = df_shot[df_shot['PlayerID'] == p_row['PlayerID']]
+    # aggregate_stats の引数を既存の定義 (df, label, ft_avg) に合わせる
+    p_stats = aggregate_stats(p_shots, p_row['PlayerNameJ'], league_ft_avg)
+    player_performance.append({
+        'PlayerID': p_row['PlayerID'],
+        '実得点': p_stats['Pts'],
+        '得点期待値': p_stats['xPts']
+    })
+
+# 3. データの統合 (変数名・ロジックを既存のものと整合)
+df_perf = pd.DataFrame(player_performance)
+output_p_full = pd.merge(df_player, df_perf, on='PlayerID')
+output_p_full['TotalApps'] = output_p_full['OFFApps'] + output_p_full['DEFApps']
+output_p_full['MarkerSize'] = np.sqrt(output_p_full['TotalApps'] + 1)
+output_p_full['得点乖離'] = output_p_full['実得点'] - output_p_full['得点期待値']
+output_p_full['is_selected'] = True if (target_team_id is None) else (output_p_full['TeamID'] == target_team_id)
+# ------------------
 
 # --- ツールチップ・キャプション ---
 with st.expander("💡 この分析ツールの使い方はこちら"):
