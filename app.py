@@ -573,10 +573,19 @@ with tab1:
 
     # 4. レイアウト調整（fig_p の 426-435行目と完全に一致する設定）
     fig_eff.update_layout(
-        height=750, # fig_p と一致
-        plot_bgcolor='white', # fig_p と一致
-        hovermode='closest', # fig_p と一致
-        # xaxis/yaxis の中で showspikes=True を指定（これが fig_p の設定方式です）
+        # fig_p (426-429行目) の title 設定と完全に一致
+        title={
+            'text': f"<b>{sel_team_name}</b> 得点効率分布<br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 
+            'x': 0.5, 
+            'y': 0.98, 
+            'xanchor': 'center', 
+            'yanchor': 'top'
+        },
+        # fig_p (430-435行目) の他設定と一致
+        margin=dict(l=20, r=20, t=100, b=100),
+        height=750, 
+        plot_bgcolor='white', 
+        hovermode='closest', 
         xaxis=dict(title="実得点 (Total Pts)", gridcolor='lightgray', showspikes=True),
         yaxis=dict(title="得点期待値との差 (実得点 - 期待値)", gridcolor='lightgray', showspikes=True),
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
