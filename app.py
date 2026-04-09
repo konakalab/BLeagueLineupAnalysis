@@ -186,7 +186,12 @@ def draw_calibration_plot(df_selected, title_suffix):
         margin=dict(l=50, r=20, t=80, b=50)
     )
 
-    fig.update_yaxes(title_text="試投数", row=1, col=1)
+    fig.update_yaxes(
+        title_text="試投数", 
+        row=1, col=1, 
+        showgrid=True,             # ✨ グリッドを表示
+        gridcolor='rgba(200, 200, 200, 0.3)' # 薄いグレーで邪魔にならないように
+    )
     fig.update_yaxes(title_text="実際の成功率", row=2, col=1, range=[0, 1], dtick=0.2)
     fig.update_xaxes(
         title_text="ショット難易度評価(位置のみに基づく)", 
