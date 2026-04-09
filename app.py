@@ -544,7 +544,8 @@ with tab1:
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
     # 2. 散布図の作成
-    # hover_data をリスト形式で指定し、formatを別途指定することで ValueError を確実に回避します
+    # ValueErrorを避けるため、hover_dataには「加工前の列名」のみをリストで渡します。
+    # フォーマットの詳細は後続の update_traces で一括制御します。
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
@@ -560,37 +561,26 @@ with tab1:
             '得点期待値との差': '得点期待値との差(Pts-xPts)',
             'TotalApps': '合計プレイ数'
         },
-        # キーと値の辞書形式ではなく、列名のリストを指定（これが最もエラーが起きにくい）
-        hover_data=['得点期待値', 'TotalApps'] 
+        # リスト形式で渡すことでPlotly内部の「存在しないキー参照」によるエラーを回避します
+        hover_data=['得点期待値', 'TotalApps']
     )
     
-    # ツールチップの数値を小数点第1位に固定し、不要な項目を排除する設定
-    # px.scatter の引数で設定するより、この update_traces で設定する方が安全です
+    # 3. デザイン・ツールチップの完全統一
+    # hovertemplate を手動定義することで、小数点10桁問題を解決し、不要な項目を排除します
     fig_eff.update_traces(
-        hovertemplate="<b>%{hovertext}</b><br>実得点(Pts): %{x:,.0f}<br>得点期待値(xPts): %{customdata[0]:.1f}<br>得点期待値との差(Pts-xPts): %{y:+.1f}<br>合計プレイ数: %{customdata[1]:d}<extra></extra>",
+        hovertemplate=(
+            "<b>%{hovertext}</b><br>" +
+            "実得点(Pts): %{x:,.0f}<br>" +
+            "得点期待値(xPts): %{customdata[0]:.1f}<br>" + 
+            "得点期待値との差(Pts-xPts): %{y:+.1f}<br>" + # ここで小数点1位に固定
+            "合計プレイ数: %{customdata[1]:d}" +
+            "<extra></extra>"
+        ),
         marker=dict(
             opacity=opacity_val, 
-            line=dict(width=0)       # 枠線なし
+            line=dict(width=0)       # 枠線なし（上のグラフと統一）
         ),
-        textposition='middle center'  # 背番号を中央に配置
-    )
-    
-    # 3. デザインの完全統一（既存グラフAに合わせる）
-    fig_eff.update_traces(
-        marker=dict(
-            opacity=opacity_val, 
-            line=dict(width=0)       # 枠線なし
-        ),
-        textposition='middle center'  # 背番号を中央に
-    )
-    
-    # 3. マーカーデザインの完全統一（既存のグラフAと同一設定）
-    fig_eff.update_traces(
-        marker=dict(
-            opacity=opacity_val, 
-            line=dict(width=0)       # 枠線なし
-        ),
-        textposition='middle center'  # 背番号をマーカー中央に配置
+        textposition='middle center'  # 背番号をマーカー中央に配置（上のグラフと統一）
     )
     
     # マーカーデザインを既存のグラフAと完全に一致させる
