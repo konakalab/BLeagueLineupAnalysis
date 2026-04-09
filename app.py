@@ -108,7 +108,7 @@ def load_all_data():
 
 def draw_calibration_plot(df_selected, title_suffix):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                        vertical_spacing=0.05, row_heights=[0.4, 0.6])
+                        vertical_spacing=0.05, row_heights=[0.5, 0.5])
 
     # 1. Binの設定
     bin_size = 0.05
@@ -192,7 +192,9 @@ def draw_calibration_plot(df_selected, title_suffix):
         title_text="ショット難易度評価(位置のみに基づく)", 
         row=2, col=1,
         tickangle=45,          # 45度回転
-        tickfont=dict(size=10) # 少し小さくすると重なりにくい
+        tickfont=dict(size=11) # 少し小さくすると重なりにくい
+        showgrid=True,             # ✨ X軸に対する垂直グリッドを表示
+        gridcolor='rgba(200, 200, 200, 0.3)'
     )
     st.plotly_chart(fig, use_container_width=True)
     
