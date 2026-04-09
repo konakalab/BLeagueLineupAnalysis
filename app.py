@@ -539,63 +539,52 @@ with tab1:
         plot_df_eff = plot_df_eff.sort_values('is_selected')
 
     # 2. 散布図の作成
-    # hover_data=None にし、px.scatterの引数でcustomdataを渡すのが「数値ズレ」を防ぐ正攻法です
+    # 評価値分布(fig_p)と同じく、hover_dataにリストを渡す基本形に戻します
     fig_eff = px.scatter(
         plot_df_eff, 
         x='実得点', 
-        y='得点乖離', # y軸は計算済みの「実得点 - 得点期待値」
+        y='得点乖離', 
         color='DisplayGroup',
         size='MarkerSize',
         text='eff_label', 
         hover_name='PlayerNameJ',
         color_discrete_map=color_map,
-        hover_data=None,
-        customdata=['得点期待値', 'TotalApps'] # 紐付けを固定
+        hover_data=['得点期待値', 'TotalApps']
     )
     
-    # 3. ツールチップとデザインの「完全再現」
+    # 3. ツールチップとデザインの統合（update_traces）
+    # 評価値分布(fig_p)の422行目以降の設定と構造を完全に一致させています
     fig_eff.update_traces(
         hovertemplate=(
             "<b>%{hovertext}</b><br>" +
             "実得点(Pts): %{x:,.0f}<br>" +
             "得点期待値(xPts): %{customdata[0]:.1f}<br>" + 
-            "得点期待値との差(Pts-xPts): %{y:+.1f}<br>" + # 小数点1位固定
+            "得点期待値との差(Pts-xPts): %{y:+.1f}<br>" + 
             "合計プレイ数: %{customdata[1]:d}" +
             "<extra></extra>"
         ),
         marker=dict(
             opacity=opacity_val, 
-            line=dict(width=0)       # 枠線なし（評価値分布と同じ）
+            line=dict(width=0)
         ),
-        textposition='middle center'  # 背番号中央（評価値分布と同じ）
+        textposition='middle center'
     )
     
-    # 4. レイアウト調整（ガイド線の追加：評価値分布と完全に一致）
+    # 4. レイアウト調整（評価値分布の432行目付近の設定を反映）
     fig_eff.update_layout(
-        height=750, # 評価値分布と同じ高さ
+        height=750, 
         template="plotly_white", 
         xaxis=dict(title="実得点 (Total Pts)", gridcolor='lightgray', showspikes=True),
         yaxis=dict(title="得点期待値との差 (実得点 - 期待値)", gridcolor='lightgray', showspikes=True),
         plot_bgcolor='white',
-        hovermode='closest',
+        hovermode='closest', # ガイド線のトリガー
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
     )
 
-    # ガイド線の詳細設定（評価値分布の挙動を再現）
-    fig_eff.update_xaxes(
-        spikemode="across",
-        spikedash="dash",
-        spikecolor="gray",
-        spikethickness=1
-    )
-    fig_eff.update_yaxes(
-        spikemode="across",
-        spikedash="dash",
-        spikecolor="gray",
-        spikethickness=1
-    )
+    # ガイド線の線種設定（グラフAと同一）
+    fig_eff.update_xaxes(spikemode="across", spikedash="dash", spikecolor="gray", spikethickness=1)
+    fig_eff.update_yaxes(spikemode="across", spikedash="dash", spikecolor="gray", spikethickness=1)
 
-    # 基準線の追加
     fig_eff.add_hline(y=0, line_dash="dot", line_color="gray")
     
     st.plotly_chart(fig_eff, use_container_width=True)
