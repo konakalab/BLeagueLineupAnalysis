@@ -574,15 +574,39 @@ with tab1:
         textposition='middle center'  # 背番号を中央に配置（上のグラフと統一）
     )
     
-    # 4. レイアウト調整
+    # 4. レイアウト調整（ガイド線の追加）
     fig_eff.update_layout(
         height=600, 
         template="plotly_white", 
         xaxis_title="実得点 (Total Pts)", 
         yaxis_title="得点期待値との差 (実得点 - 期待値)",
         plot_bgcolor='white',
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        
+        # マウスホバー時に十字のガイド線を出す設定
+        hovermode="closest"
     )
+
+    # X軸方向（下へ伸びる線）の設定
+    fig_eff.update_xaxes(
+        showspikes=True,
+        spikemode="across",
+        spikethickness=1,
+        themedata="plotly_white",
+        spikedash="dash",
+        spikecolor="gray"
+    )
+
+    # Y軸方向（左へ伸びる線）の設定
+    fig_eff.update_yaxes(
+        showspikes=True,
+        spikemode="across",
+        spikethickness=1,
+        themedata="plotly_white",
+        spikedash="dash",
+        spikecolor="gray"
+    )
+
     st.plotly_chart(fig_eff, use_container_width=True)
     
     
