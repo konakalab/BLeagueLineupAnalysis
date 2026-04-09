@@ -496,7 +496,7 @@ with tab1:
     )
 
     fig_p.update_layout(
-        title={'text': f"<b>{sel_team_name}</b> 選手評価分布<br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 'x': 0.5, 'y': 0.98, 'xanchor': 'center', 'yanchor': 'top'},
+        title={'text': f"<b>{sel_team_name}</b> 選手評価分布 <span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 'x': 0.5, 'y': 0.98, 'xanchor': 'center', 'yanchor': 'top'},
         margin=dict(l=20, r=20, t=100, b=100),
         xaxis=dict(range=[-30, 30], title="攻撃評価", gridcolor='lightgray', showspikes=True),
         yaxis=dict(range=[-30, 30], title="守備評価", gridcolor='lightgray', scaleanchor="x", scaleratio=1, showspikes=True),
@@ -575,7 +575,7 @@ with tab1:
     fig_eff.update_layout(
         # fig_p (426-429行目) の title 設定と完全に一致
         title={
-            'text': f"<b>{sel_team_name}</b> 得点効率分布<br><span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 
+            'text': f"<b>{sel_team_name}</b> 得点効率分布 <span style='font-size:12px; color:gray;'>期間: {analysis_period}</span>", 
             'x': 0.5, 
             'y': 0.98, 
             'xanchor': 'center', 
