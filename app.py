@@ -384,7 +384,10 @@ def draw_shot_chart(player_shots, player_name):
     return fig
 
 
-# --- 4. メインタイトル ---
+# --- メインタイトル ---
+# --- データの読み込み
+df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
+
 st.title(f"🏀 Bリーグ選手評価：{sel_team_name if 'sel_team_name' in locals() else ''}")
 st.info(f"📅 分析対象期間：{analysis_period}")
 
@@ -432,8 +435,6 @@ st.caption(f"Developed by [@konakalab](https://x.com/konakalab) | 📅 データ
 # ① データの準備フェーズ (Logic) 
 # ※タブが表示される前にすべての計算を終わらせます
 # ==========================================
-# --- データの読み込み
-df_team, df_player, df_lineup, df_shot, analysis_period = load_all_data()
 
 # 1. リーグ平均FT%の算出 (ActionCD1: 7=成功, 8=失敗)
 is_ft_all = df_shot['ActionCD1'].isin([7, 8])
