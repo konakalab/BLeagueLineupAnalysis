@@ -822,7 +822,7 @@ with tab1:
             '攻撃評価': '{:.1f}', 
             '守備評価': '{:.1f}', 
             '総合評価': '{:.1f}',
-            'KWAR': '{:.2f}'
+            'kWAR': '{:.2f}'
         }), 
         use_container_width=True, 
         hide_index=True,
