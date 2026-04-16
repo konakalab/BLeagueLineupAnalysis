@@ -819,7 +819,9 @@ with tab1:
             '守備評価': '{:.1f}', 
             '総合評価': '{:.1f}',
             'kWAR': '{:.2f}'
-        }).map(lambda v: 'font-weight: bold;', subset=['kWAR']), 
+        })
+        .background_gradient(cmap='RdYlGn', subset=['kWAR'])
+        .map(lambda v: 'font-weight: bold;', subset=['kWAR']), 
         use_container_width=True, 
         hide_index=True,
         column_config={
