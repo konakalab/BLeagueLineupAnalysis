@@ -762,7 +762,7 @@ with tab1:
     st.write(f"### {sel_team_name} 選手データ一覧")
     with st.expander("💡 独自指標「kWAR」について"):
         st.markdown(f"""
-        * kWAR (Win Above Replacement level defined by konakalab)はkonakalabが独自に算出している選手の評価指標です．
+        * kWAR (**W**in **A**bove **R**eplacement level defined by **k**onakalab)はkonakalabが独自に算出している選手の評価指標です．
         * 野球で発明されたWAR(Win Above Replacement level)を参考としています．
         * kWARの定義では，基準となるレベルの選手(replacement level)を「リーグの平均的な選手のみのチームと対戦したときに予測される勝率が10％」としています．
         * そのチームの1名と着目する選手が交替し，1試合当たり30分程度出場したときに何勝を積み上げられそうか，という実績の評価値です．
