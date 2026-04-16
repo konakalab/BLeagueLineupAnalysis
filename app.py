@@ -789,7 +789,7 @@ with tab1:
     output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
     
     # 表示する列のリストを定義
-    cols_base = ['PlayerNo', 'PlayerNameJ', '公式サイト', '実得点', '得点期待値', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
+    cols_base = ['PlayerNo', 'PlayerNameJ', '公式サイト', '実得点', '得点期待値', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF','kWAR']
     if is_league_mode:
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
         output_p['チーム'] = output_p['TeamID'].map(team_dict)
@@ -803,7 +803,8 @@ with tab1:
         'PlayerNameJ': '選手名', 
         'TotalApps': '合計プレイ数', 
         'HensatiOFF': '攻撃評価', 
-        'HensatiDEF': '守備評価'
+        'HensatiDEF': '守備評価',
+        'kWAR': 'kWAR'
     }
     
     res_p = output_p[cols].rename(columns=rename_dict).sort_values('合計プレイ数', ascending=False)
@@ -817,7 +818,8 @@ with tab1:
             '貢献量': '{:,.1f}', 
             '攻撃評価': '{:.1f}', 
             '守備評価': '{:.1f}', 
-            '総合評価': '{:.1f}'
+            '総合評価': '{:.1f}',
+            'KWAR': '{:.1f}'
         }), 
         use_container_width=True, 
         hide_index=True,
