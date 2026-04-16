@@ -70,10 +70,6 @@ def load_all_data():
         for col in ['HensatiOFF', 'HensatiDEF', 'RatingOFF', 'RelativeShotX', 'RelativeShotY', 'AbvRpl_Total']:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
-
-        for col in ['kWAR']
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
                 
     # --- 以下、既存の辞書作成や期間取得ロジック ---
     p_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNameJ']))
