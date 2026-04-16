@@ -70,7 +70,7 @@ def load_all_data():
         for col in ['HensatiOFF', 'HensatiDEF', 'RatingOFF', 'RelativeShotX', 'RelativeShotY', 'AbvRpl_Total','kWAR']:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
-
+                
     # --- 以下、既存の辞書作成や期間取得ロジック ---
     p_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNameJ']))
     p_no_dict = dict(zip(df_p['PlayerID'], df_p['PlayerNo']))
@@ -818,7 +818,7 @@ with tab1:
             '攻撃評価': '{:.1f}', 
             '守備評価': '{:.1f}', 
             '総合評価': '{:.1f}',
-            'KWAR': '{:.1f}'
+            'KWAR': '{:.2f}'
         }), 
         use_container_width=True, 
         hide_index=True,
