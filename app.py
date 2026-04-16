@@ -67,7 +67,7 @@ def load_all_data():
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
         
         # 小数点型の列を丸める
-        for col in ['HensatiOFF', 'HensatiDEF', 'RatingOFF', 'RelativeShotX', 'RelativeShotY', 'AbvRpl_Total']:
+        for col in ['HensatiOFF', 'HensatiDEF', 'RatingOFF', 'RelativeShotX', 'RelativeShotY', 'AbvRpl_Total','kWAR']:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
 
@@ -803,8 +803,7 @@ with tab1:
         'PlayerNameJ': '選手名', 
         'TotalApps': '合計プレイ数', 
         'HensatiOFF': '攻撃評価', 
-        'HensatiDEF': '守備評価',
-        'kWAR': 'kWAR'
+        'HensatiDEF': '守備評価'
     }
     
     res_p = output_p[cols].rename(columns=rename_dict).sort_values('合計プレイ数', ascending=False)
