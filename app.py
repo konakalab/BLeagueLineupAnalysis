@@ -789,7 +789,7 @@ with tab1:
     output_p['公式サイト'] = "https://www.bleague.jp/roster_detail/?PlayerID=" + output_p['PlayerID'].astype(str)
     
     # 表示する列のリストを定義
-    cols_base = ['PlayerNo', 'PlayerNameJ', '公式サイト', '実得点', '得点期待値', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF','kWAR']
+    cols_base = ['PlayerNo', 'PlayerNameJ', '公式サイト','kWAR', '実得点', '得点期待値', 'TotalApps', '貢献量', '総合評価', 'HensatiOFF', 'HensatiDEF']
     if is_league_mode:
         team_dict = dict(zip(df_team['TeamID'], df_team['Team']))
         output_p['チーム'] = output_p['TeamID'].map(team_dict)
