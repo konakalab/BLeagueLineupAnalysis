@@ -67,7 +67,11 @@ def load_all_data():
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
         
         # 小数点型の列を丸める
-        for col in ['HensatiOFF', 'HensatiDEF', 'RatingOFF', 'RelativeShotX', 'RelativeShotY', 'AbvRpl_Total','kWAR']:
+        for col in ['HensatiOFF', 'HensatiDEF', 'RatingOFF', 'RelativeShotX', 'RelativeShotY', 'AbvRpl_Total']:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
+
+        for col in ['kWAR']
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
                 
