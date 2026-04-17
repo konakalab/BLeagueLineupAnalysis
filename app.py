@@ -817,6 +817,10 @@ with tab1:
     
     res_p = output_p[cols].rename(columns=rename_dict).sort_values('合計プレイ数', ascending=False)
     
+    # ★ 追加: リーグ全体（検索前）のkWAR範囲を取得して色基準を固定する
+    all_kwar_min = df_all_p['kWAR'].min()
+    all_kwar_max = df_all_p['kWAR'].max()
+    
     # 4. テーブル表示
     st.dataframe(
         res_p.style.format({
@@ -829,7 +833,12 @@ with tab1:
             '総合評価': '{:.1f}',
             'kWAR': '{:.2f}'
         })
-        .background_gradient(cmap='RdYlGn', subset=['kWAR'])
+        .background_gradient(
+            cmap='RdYlGn', 
+            subset=['kWAR'],
+            vmin=all_kwar_min, # 全体データの最小値を基準にする
+            vmax=all_kwar_max  # 全体データの最大値を基準にする
+        )
         .map(lambda v: 'font-weight: bold;', subset=['kWAR']), 
         use_container_width=True, 
         hide_index=True,
