@@ -820,6 +820,11 @@ with tab1:
     # ★ 追加: リーグ全体（検索前）のkWAR範囲を取得して色基準を固定する
     all_kwar_min = df_all_p['kWAR'].min()
     all_kwar_max = df_all_p['kWAR'].max()
+
+    # 総合評価（HensatiOFFとHensatiDEFの平均）の全体範囲を取得
+    all_eval_series = (df_all_p['HensatiOFF'] + df_all_p['HensatiDEF']) / 2
+    all_eval_min = all_eval_series.min()
+    all_eval_max = all_eval_series.max()
     
     # 4. テーブル表示
     st.dataframe(
@@ -838,6 +843,11 @@ with tab1:
             subset=['kWAR'],
             vmin=all_kwar_min, # 全体データの最小値を基準にする
             vmax=all_kwar_max  # 全体データの最大値を基準にする
+        ).background_gradient(
+            cmap='RdYlGn', 
+            subset=['総合評価'],
+            vmin=all_eval_min, # リーグ全体の総合評価最小値
+            vmax=all_eval_max  # リーグ全体の総合評価最大値
         )
         .map(lambda v: 'font-weight: bold;', subset=['kWAR']), 
         use_container_width=True, 
