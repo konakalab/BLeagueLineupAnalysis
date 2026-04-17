@@ -849,7 +849,8 @@ with tab1:
             vmin=all_eval_min, # リーグ全体の総合評価最小値
             vmax=all_eval_max  # リーグ全体の総合評価最大値
         )
-        .map(lambda v: 'font-weight: bold;', subset=['kWAR']), 
+        .map(lambda v: 'font-weight: bold;', subset=['kWAR'])
+        .map(lambda v: 'font-weight: bold;', subset=['総合評価']), 
         use_container_width=True, 
         hide_index=True,
         column_config={
